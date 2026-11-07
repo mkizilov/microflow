@@ -15,3 +15,22 @@
 - End each turn with a short summary of changes, checks actually run, remaining limitations, and commit hash. The orchestrator will provide the next prompt only after this turn ends.
 
 Extend this file with the project's language-specific architecture and verification commands while retaining these boundaries.
+
+## Language and tooling
+
+- Python 3.12+, managed with `uv`. Dependencies are declared in `pyproject.toml` and pinned in `uv.lock`.
+- Source lives in `src/microflow/`; tests in `tests/`; docs in `docs/`.
+- Verification commands (run from the repository root):
+  - `uv sync --locked`
+  - `uv run ruff check .` and `uv run ruff format --check .`
+  - `uv run mypy`
+  - `uv run pytest`
+  - `uv run microflow make-sample-data --out-dir data/synthetic`
+
+## Engineering rules for this project
+
+- **Deterministic tests:** every random step takes an explicit seed; tests must not depend on wall-clock time, network, or ordering of unseeded sources.
+- **Scientific units:** every quantitative value carries a unit. Calibration requires an explicit length unit (`microflow.units.Calibration`); never silently assume pixels or micrometres.
+- **Isolated dependencies:** install only through `uv` into `.venv/` inside this repository. Do not install packages globally or into the system Python.
+- **Clean temporary files:** tests write only under pytest's `tmp_path`; generated data goes to `data/synthetic/` (git-ignored) and is removed when no longer needed.
+- **Scope:** analysis algorithms (preprocessing, segmentation, quantification) are added only by their own numbered task. The current subpackages are placeholders.
