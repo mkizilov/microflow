@@ -1,0 +1,38 @@
+{
+  "microflow": "0.1.0",
+  "python": "3.12.11",
+  "platform": "macOS-27.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "libraries": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "scikit-image": "0.26.0",
+    "tifffile": "2026.11.8"
+  },
+  "results": [
+    {
+      "size_px": 256,
+      "pixels": 65536,
+      "objects": 44,
+      "repeats": 3,
+      "segment_median_s": 0.001839,
+      "segment_best_s": 0.001814,
+      "measure_median_s": 0.007697,
+      "measure_best_s": 0.007614,
+      "segment_peak_mb": 3.19,
+      "measure_peak_mb": 0.25
+    },
+    {
+      "size_px": 512,
+      "pixels": 262144,
+      "objects": 166,
+      "repeats": 3,
+      "segment_median_s": 0.007539,
+      "segment_best_s": 0.007406,
+      "measure_median_s": 0.037139,
+      "measure_best_s": 0.033208,
+      "segment_peak_mb": 9.5,
+      "measure_peak_mb": 0.93
+    }
+  ]
+}

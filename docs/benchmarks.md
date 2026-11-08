@@ -5,10 +5,18 @@ on synthetic images, and records the peak Python allocation of each step.
 
 ## Status
 
-**No benchmark numbers have been measured or reported for this version.** The authoring environment
-had no scientific Python stack and no network, so the script was not run. The numbers that appear in
-any future report must come from a run on the machine, with the software versions, that the report
-names.
+One run is committed: `benchmarks/results/pipeline-macos-arm64-py312.json`. It was produced on one
+machine (macOS 27.2, arm64, Python 3.12.11, NumPy 2.5.4, SciPy 1.18.1, scikit-image 0.26.0). It has
+three repeats per size, at 256 and 512 pixels. The medians are:
+
+| Size (px) | Objects | Segmentation median (s) | Measurement median (s) | Segmentation peak (MB) | Measurement peak (MB) |
+| --- | --- | --- | --- | --- | --- |
+| 256 | 44 | 0.001839 | 0.007697 | 3.19 | 0.25 |
+| 512 | 166 | 0.007539 | 0.037139 | 9.50 | 0.93 |
+
+This is a smoke measurement. It shows that the script runs and gives the order of magnitude of a plane's
+time. It is not a benchmark campaign: three repeats cannot show the variance, and no other machine, system
+or batch-level workload has been measured. Compare results only on the same machine and software.
 
 ## Running
 

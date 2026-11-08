@@ -126,9 +126,8 @@ earlier attempt can pass as current.
   continue. Which images were running at the time cannot always be determined, so each one in
   flight is recorded as failed and is retried on the next run.
 - Process-based parallelism relies on the `spawn` start method on macOS and Windows. The worker
-  function is importable at module level, but the parallel path has not been run in the
-  environment where this was written. The parallel tests are the first to run once dependencies
-  are installed.
+  function is importable at module level. The parallel path ran on macOS arm64 under `spawn`, with the
+  full test suite passing on Python 3.12 and 3.13. The `fork` start method on Linux has not been run.
 - One run takes one batch configuration. A "dataset" here is the set of images listed in that
   configuration, and different settings need separate runs with separate output directories.
 - The memory estimate is a heuristic. Very large images can exceed it.

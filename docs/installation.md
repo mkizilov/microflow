@@ -41,7 +41,7 @@ uv run microflow make-sample-data --out-dir data/synthetic
 uv run python examples/demo/run_demo.py --clean   # the end-to-end demonstration
 ```
 
-The demonstration writes to `data/demo/`. It has not yet been timed (ROADMAP item 11). Its final
+The demonstration writes to `data/demo/`. It ran to completion on macOS arm64 during verification. Its final
 message names the HTML report to open.
 
 ## Docker (optional service)

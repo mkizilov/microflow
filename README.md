@@ -7,20 +7,29 @@ optional HTTP service.
 
 ## Project status
 
-- **Executed:** 52 tests of the service path policy, job store, provenance verifier and study report,
-  run on the standard library.
-- **Not yet executed:** the rest of the test suite (about 680 test functions), Ruff, mypy, the CI
-  workflows, the demonstration, the HTTP service, the machine-learning path, the Docker image and every
-  benchmark.
-- **Blocking:** `uv.lock` has not been generated, so `uv sync --locked`, CI and the Docker build fail
-  until it is.
+Verified on one machine (macOS 27.2, arm64) with the locked environment (`uv sync --locked --all-extras`,
+uv 0.8.22):
 
-[ROADMAP.md](ROADMAP.md) lists what is implemented, what is verified and what is open, with effort
-estimates. Read it before relying on any result.
+- Python 3.12.11 and 3.13.7: the full test suite passes, 939 tests passed and 1 skipped. The skip is
+  the CUDA test, and this machine has no GPU.
+- Ruff lint, Ruff format and strict mypy (163 source files) pass.
+- The end-to-end demonstration runs to completion: 16 synthetic images, batch, export, statistics,
+  the HTML report, and a re-hash that matches all 64 recorded files.
+- The wheel and source distribution build, and the wheel installs from the locked runtime
+  requirements. Its CLI works without the `service` extra.
+- The ML commands from the CI workflow run on CPU: dataset, splits, training and held-out evaluation.
+- A single benchmark run, with three repeats, is committed in `benchmarks/results/`.
+
+Not verified here: the GitHub Actions workflows (the repository has not been published), Linux and
+Windows, the Docker image (not built), CUDA training, and accuracy on real microscopy. The demonstration's
+Dice scores come from noiseless synthetic phantoms and say nothing about real images.
+
+[ROADMAP.md](ROADMAP.md) lists what is implemented, verified and open, with effort estimates. Read it
+before relying on any result.
 
 ## Requirements
 
-- Python 3.12 or 3.13. CI is configured for both; the test suite has not yet run on either.
+- Python 3.12 or 3.13. Both pass the test suite locally; the CI workflow has not run yet.
 - [uv](https://docs.astral.sh/uv/) for environment and dependency management
 
 ## Setup
@@ -171,17 +180,25 @@ uv run ruff format --check .
 uv run mypy
 uv run pytest
 python3 scripts/generate_reference.py --check
+uv run python scripts/generate_license_inventory.py --check
 ```
 
 The CI workflow in `.github/workflows/ci.yml` runs these on Python 3.12 and 3.13, with the optional
-extras, the demonstration and the reference check. It has not yet run; see ROADMAP items 1 to 3.
+extras, the demonstration and the reference check. It has not run on GitHub yet.
 
 ## Dependency locking
 
-Dependencies are declared in `pyproject.toml`. The lock file `uv.lock` is **not yet committed**. It
-must be generated once, with network access, using `uv lock`, and then committed. Until then,
-`uv sync --locked` fails, and so do the CI jobs and the Docker build that depend on it. After it
-exists, regenerate it with `uv lock` whenever `pyproject.toml` changes. See ROADMAP item 1.
+Dependencies are declared in `pyproject.toml`, and `uv.lock` pins the exact versions of the 63 locked
+packages. Use `uv sync --locked` to install exactly that set. After changing `pyproject.toml`,
+regenerate the lock with `uv lock` and commit it. `uv lock --check` confirms that the lock matches the
+project.
+
+## License
+
+MicroFlow is released under the MIT License. See [LICENSE](LICENSE). Copyright (c) 2026 Mykyta Kizilov.
+The example plugin package in `examples/plugins/` carries the same license. Third-party packages keep
+their own licenses. [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) lists the locked packages with
+their licenses, the copyleft review, and the notes for redistributing a container image.
 
 ## Documentation
 
@@ -196,6 +213,7 @@ exists, regenerate it with `uv lock` whenever `pyproject.toml` changes. See ROAD
 - [Audit](docs/audit.md): what was checked for numerical accuracy, units, axes, statistics,
   segmentation and model evaluation, and what remains open.
 - [Benchmarks](docs/benchmarks.md) and [Docker](docs/docker.md).
+- [Third-party licenses](THIRD_PARTY_LICENSES.md), generated from the locked environment.
 
 ## Demonstration
 
@@ -208,8 +226,8 @@ verifies the run's recorded files.
 uv run python examples/demo/run_demo.py --clean
 ```
 
-Outputs go to `data/demo/` (git-ignored). Open `data/demo/results/report.html` when it finishes. The
-demonstration has not yet been executed; see ROADMAP item 11.
+Outputs go to `data/demo/` (git-ignored). Open `data/demo/results/report.html` when it finishes. It ran to
+completion in the verification environment described above.
 
 ## Layout
 
@@ -217,8 +235,9 @@ demonstration has not yet been executed; see ROADMAP item 11.
 src/microflow/   package: core processing, batch, ml, stats, service, provenance, reporting
 tests/           pytest suite (deterministic, uses tmp_path only)
 examples/        example configurations, the demonstration, and the optional service's settings
-benchmarks/      pipeline timing script (no results are committed)
-scripts/         generate_reference.py, which writes docs/reference from the code
+benchmarks/      pipeline timing script and one committed smoke-run result (benchmarks/results/)
+scripts/         generate_reference.py (writes docs/reference) and generate_license_inventory.py
+                 (writes THIRD_PARTY_LICENSES.md)
 docs/            user, reference, statistics, service and audit documentation
 .github/         CI workflow
 Dockerfile       container image for the optional service

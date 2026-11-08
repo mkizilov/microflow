@@ -73,11 +73,12 @@ the manifest by name:
 
 ```python
 import csv, json
+
 manifest = json.load(open("results/batch/batch_manifest.json"))
 hashes = {item["name"]: item["sha256"] for item in manifest["provenance"]["inputs"]}
 with open("results/export/measurements.csv", newline="") as handle:
     for row in csv.DictReader(handle):
-        source_hash = hashes[row["item"]]   # the image this object was measured in
+        source_hash = hashes[row["item"]]  # the image this object was measured in
 ```
 
 ## 6. What did a statistical result depend on?

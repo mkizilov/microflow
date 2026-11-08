@@ -137,8 +137,8 @@ loaded with `weights_only=True`, so opening one cannot run code.
   CUDA when present and CPU otherwise. The command-line `--device` option overrides the setting.
 - On Linux, `pyproject.toml` pins PyTorch to its CPU-only index to keep CI small. To use CUDA
   wheels, remove the `torch` entry under `[tool.uv.sources]` and re-lock.
-- The GPU test is marked `gpu` and is skipped when CUDA is unavailable. **It has not been run in
-  this environment.**
+- The GPU test is marked `gpu` and is skipped when CUDA is unavailable. It is skipped on this machine,
+  which has no GPU, so the CUDA path remains unverified.
 
 ## Tests
 
@@ -173,9 +173,19 @@ thresholding, quality reporting, comparison with classical masks, and the requir
 
 ## Verification status
 
-**Not run in the environment where this was written**, which had no network, no PyTorch, and no
-NumPy. Verified there: static checks (undefined names, import resolution, call signatures, unused
-code, import cycles), a check that the torch-free modules reach no PyTorch-importing module through
-module-level imports (with a seeded violation caught), and byte-compilation. Everything else,
-including all tests, Ruff, mypy, the CI workflow, and the GPU path, must be run on a machine with
-the dependencies installed.
+Executed on macOS arm64 with PyTorch 2.15 (CPU), in the locked environment, under Python 3.12.11 and
+3.13.7. The ML test modules pass: `tests/test_ml_torch.py` has 17 passing tests and 1 skipped, the
+CUDA test, because this machine has no GPU. The four ML commands from the CI workflow run to
+completion on CPU: `make-dataset`, `splits`, `train` and `evaluate`.
+
+The synthetic training run is a smoke test. Three epochs on four training samples gave a test Dice
+of 0.75 on two images. That shows the pipeline runs and learns. It is not evidence that the model
+is accurate.
+
+Verification found a real defect, now fixed. `evaluate` compared the checkpoint's identity with the
+identity stored in the run directory. Both were written at training time, so the comparison could not
+see a changed held-out image. It now compares the checkpoint with the identity computed from the
+current images, masks and settings.
+
+Not run: the CUDA path (no GPU here), and the CI `ml` job on GitHub's Linux runners. The CPU PyTorch
+index applies only on Linux, so the Linux wheel path is unverified.

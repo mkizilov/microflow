@@ -14,6 +14,8 @@ build/
 .mypy_cache/
 data/synthetic/
 results/
+# Committed benchmark records live in benchmarks/results; the rule above is for example output only.
+!benchmarks/results/
 batch-results/
 # Tool-managed session state (not project source)
 .cortexkit/

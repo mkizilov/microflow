@@ -117,8 +117,8 @@ above). Tiled and whole-plane prediction are compared in tests, with the overlap
 normalisation or split does not match the current data, so a model cannot be scored on a dataset it
 was not prepared for.
 
-**Open:** the ML tests skip without PyTorch and have not run here. No accuracy claim is made for any
-model.
+**Open:** the ML tests ran here with PyTorch on CPU and pass. The CUDA test was skipped, and no accuracy
+claim is made for any model.
 
 ## Reproducibility
 
@@ -150,11 +150,46 @@ fixed.
 - **Duplicated unit conversion.** `preprocessing/pipeline.py` has a second conversion helper, which can
   drift from `units.py` (ROADMAP item 23).
 
+## Publication verification (final pass)
+
+The full suite ran for the first time with the locked dependencies installed. Every item below was
+found by running code. It supersedes the earlier by-reading statements where they differ.
+
+- **The package could not be imported (critical, now fixed).** `units.py` annotated `area_to_pixels`
+  with `Area` before the `Area` class was defined. Python 3.12 evaluates annotations at definition
+  time, so importing `microflow.units` raised `NameError`. That included the CLI and every module that
+  imports units. The defect dated from the units change. The static checker missed it because it checked
+  names across the whole file, not in definition order. The earlier unit checks in this audit were made
+  by reading and arithmetic, not by importing the code. A test now imports every module in the package.
+- **ML evaluation did not detect changed held-out data (defect, now fixed).** The comparison used two
+  identities that were both written at training time. See `machine-learning.md`.
+- **A feature-plugin failure was not exercised (fixture defect, now fixed).** The test image had one
+  saturated pixel, which moved Otsu's threshold from 105.7 to 3024.8. The second block then fell below
+  the threshold and no object was measured, so the plugin never ran. The fixture now saturates a block.
+  This is a real sensitivity: a single outlier pixel can move a global threshold enough to remove real
+  objects. Masking saturated pixels before thresholding is open work (`ROADMAP.md`).
+- **Perimeter is biased high (documented, test corrected).** A digital disc's iso-contour is about 5 %
+  longer than its circle for large radii, and 7 % at radius 20 pixels. The test had assumed a 3 %
+  tolerance without measuring. It now asserts the measured band and the trend with radius. See
+  `measurements.md`.
+- **Test expectations that were wrong, not code.** The OME unit test mixed units, so the mixed-units
+  check fired before the unsupported-unit check. The integrated-intensity column includes the source and
+  channel, `raw_DAPI_integrated_intensity_um2`. A statistics helper built designs without resolving
+  relative paths. A hand-computed Hedges value was rounded wrongly. Numpy booleans were compared with `is`.
+  A constant image cannot be normalised, which is correct, so one test image needed a range. The CLI
+  measure test lacked axes metadata. A progress test read an attribute of the wrong object.
+- **Typing.** Strict mypy reported 72 issues on first run. Code was fixed where it was wrong. Those
+  fixes covered executor typing, OME metadata that can be `None`, a progress callback that returned a
+  value, and implicit re-exports. Unit strings from the ML CLI are now validated at the boundary. SciPy,
+  pyarrow and scikit-image ship no type information in the locked versions. Their calls are relaxed in
+  the few modules that use them, and `pyproject.toml` says so.
+- **Lint and format.** Ruff reported 28 issues, one of them the undefined name above. All are fixed, and
+  the formatter changed 34 files.
+
 ## What remains open
 
-- Every test that depends on NumPy, SciPy, scikit-image, pydantic, typer, matplotlib, pyarrow, PyTorch,
-  FastAPI or pytest has not been run in the authoring environment. Run `uv run pytest` before relying on
-  this audit.
+- Not run: the CUDA path (no GPU here), the Docker image (not built), and the GitHub Actions workflows
+  (the repository has not been published).
 - No accuracy claim has been measured on real microscopy.
-- No benchmark has been run; see `docs/benchmarks.md`.
-- The Docker image has not been built and the compose file has not been run.
+- One smoke benchmark run is committed (`benchmarks/results/`). No benchmark campaign has been run.
+- Linux and Windows have not been tested. Python 3.12 and 3.13 on macOS have.

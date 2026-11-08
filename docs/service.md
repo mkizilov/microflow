@@ -179,15 +179,15 @@ service.
 
 ## Verification status
 
-Executed on the standard library, in the authoring environment, through a scratch pytest-subset runner
-(CPython 3.9, not 3.12):
+Executed on macOS arm64, under Python 3.12.11 and 3.13.7, with FastAPI and uvicorn from the locked
+`service` extra. Every service test passes. They cover the path policy (traversal, encoded and
+symbolic-link escapes, hidden names, file kinds, listing bounds and redaction), the job store (including
+a 16-thread race for a job claim), settings, validation, the job lifecycle (cancellation, shutdown and
+restart), the CLI without the extra, and the HTTP API. The HTTP tests include authentication, invalid
+input, concurrency limits, downloads, and a real batch on synthetic images with its quality-control
+report. One traversal test accepts two status codes, because routing may reject an encoded double slash
+before the handler runs. That allowance is open (see `ROADMAP.md`).
 
-- `tests/test_service_paths.py`: 32 of 32 pass. These cover the path policy: traversal, encoded and
-  symbolic-link escapes, hidden names, file kinds, listing bounds and redaction.
-- `tests/test_service_store.py`: 8 of 8 pass, including a 16-thread race for a job claim.
-
-Not executed: `tests/test_service_jobs.py`, `tests/test_service_validation.py`,
-`tests/test_service_settings.py` and `tests/test_cli_service_optional.py`, which need pydantic and typer;
-and `tests/test_service_api.py`, which needs FastAPI and runs in the CI `service` job. The HTTP-level
-assertions about Starlette's routing of encoded slashes are the least certain part. Docker has not been
-built (see `docs/docker.md`). See `ROADMAP.md` items 8, 10 and 13.
+Not run: the Docker image. It has not been built (see `docs/docker.md`). Running the service on a
+non-loopback address has not been tested. The test client emits a deprecation warning from Starlette about
+its `httpx` dependency. The warning does not affect the results.

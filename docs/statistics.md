@@ -156,8 +156,8 @@ Expected behaviour, which the test suite asserts: the area comparison has four s
 negative Hedges' g (control minus treated), and a Welch p-value below 0.05. Eccentricity and raw
 intensity are reported with their intervals, but their p-values are **not** asserted. At four donors per
 group, a null measure can cross 0.05 by chance, and the example is not a calibration study. These
-expectations come from the generator's parameters. They have not been run in the environment where
-this module was written.
+expectations come from the generator's parameters. They pass on macOS arm64 under Python 3.12 and 3.13
+with the locked dependencies.
 
 ## Limitations
 
@@ -180,14 +180,16 @@ this module was written.
 
 ## Verification status
 
-Executed: `tests/test_stats_report.py`, 6 of 6 pass, on the standard library (CPython 3.9, through a
-scratch runner). The report reads only the files a run writes.
+Executed on macOS arm64, under Python 3.12.11 and 3.13.7. Every statistics test passes: the estimators,
+corrections, design validation, data reading, analysis, output, plots, CLI, the example, and the report.
+A hand-checked value is now also asserted in code. The Hedges' g for two two-value groups is
+-(8/7)√2 = -1.616244. An earlier, rounded constant in a test was wrong and has been corrected.
 
-Checked by hand against the definitions, not executed: Benjamini-Hochberg and Holm on a four-value
-family; Hedges' g for two two-value groups, which is -(8/7)√2 = -1.6162; and the exact permutation count
-for complete separation of three against three, which is 2/20.
+The demonstration (`examples/demo/run_demo.py`, seed 20260101) gave, for area, Hedges' g of -2.160
+(95 % interval -5.605 to -1.613) for control against treated, with four biological samples per group and
+an adjusted Welch p-value of 0.086. That is the output of this run on this machine, reported as a result,
+not as a validation.
 
-Not executed: the estimator, correction, design, data, analysis, output and plotting tests, which need
-NumPy, SciPy, matplotlib and pydantic. The figures have not been viewed. The statistics have not been
-compared with an independent package, and nested designs are not modelled. See `ROADMAP.md` items 11,
+Not done: the statistics have not been compared with an independent package, nested designs are not
+modelled, and the figures have not been reviewed by eye. See `ROADMAP.md` items on those topics,
 12 and 19.

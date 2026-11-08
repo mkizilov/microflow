@@ -211,11 +211,11 @@ relative paths resolve against the working directory.
 
 ## Verification status
 
-Written in an environment without PyTorch or NumPy. **Not run:** every test, Ruff, mypy, and the batch
-and plugin integration. Verified statically there: name resolution, call signatures, unused code, and
-import isolation, meaning that the torch-free modules (including the plugin module, which the batch
-pipeline imports) do not import PyTorch at load time. The tests in `tests/test_ml_tiling.py`,
-`tests/test_ml_fallback.py`, `tests/test_ml_model_spec.py`, `tests/test_ml_pipeline.py`,
-`tests/test_ml_compare.py` and `tests/test_cli_ml_inference.py` (the parts that need no PyTorch) are the
-first to run on a machine with NumPy and SciPy. The `tests/test_ml_inference.py` and `tests/test_ml_plugin.py`
-tests need PyTorch. The CUDA path has not been run on any machine.
+Executed on macOS arm64 with PyTorch 2.15 (CPU), under Python 3.12.11 and 3.13.7. The full test suite
+passes (939 passed, 1 skipped), and that includes the inference, tiling, fallback, model-compatibility,
+plugin and ML-to-classical comparison tests. The tiled-against-whole-plane agreement, the
+receptive-field check against measured gradient support, and the batch run of the `ml-unet` plugin all
+pass.
+
+Not run: the CUDA path, because this machine has no GPU. Model accuracy is not reported here; see
+`machine-learning.md`.

@@ -73,4 +73,5 @@ column in `microflow measure`.
   shape, not by counts.
 - The report describes the segmentation as given. It does not re-run or validate it.
 - Matplotlib is a required dependency. Figure bytes are expected to be identical for identical
-  inputs; a test asserts this, but it has not been run in the environment where this was written.
+  inputs. A test asserts this, and it passes on macOS arm64 with the locked Matplotlib. Byte equality across
+  platforms is not claimed.

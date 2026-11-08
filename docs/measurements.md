@@ -37,6 +37,10 @@ Analytic checks in the test suite:
 
 - A square of `s x s` pixels has perimeter `4(s-1) + 2*sqrt(2)` pixels. A single pixel has
   perimeter `2*sqrt(2)`.
+- A digital disc has a longer iso-contour than the circle it approximates. Measured ratios of the
+  perimeter to `2*pi*r` are 1.14, 1.09, 1.07 and 1.06 for radii 5, 10, 20 and 40 pixels. The bias is
+  about 5 % for large discs and falls as the radius grows. Compare perimeters of similar-sized objects.
+  Area and equivalent diameter are within 1 % of the analytic values at radius 20 pixels.
 - A disc of radius `r` has area close to `pi r^2`, perimeter close to `2 pi r`, and equivalent
   diameter close to `2r`. Discretisation makes these approximate. The tests allow 1-3%.
 - An ellipse with semi-axes `a` and `b` has eccentricity `sqrt(1 - (b/a)^2)`.
@@ -59,7 +63,7 @@ Columns are named `<source>_<channel>_<statistic>`:
 | `median` | Median over valid pixels. |
 | `std` | Population standard deviation over valid pixels (divisor n, not n-1). |
 | `min`, `max` | Extremes over valid pixels. |
-| `integrated_intensity_<unit>2` | Sum over valid pixels times the area of one pixel. Its unit is the intensity unit times the length unit squared. Without calibration it is the plain sum. |
+| `<source>_<channel>_integrated_intensity_<unit>2`, for example `raw_DAPI_integrated_intensity_um2` | Sum over valid pixels times the area of one pixel. Its unit is the intensity unit times the length unit squared. Without calibration it is the plain sum. |
 
 An object with no valid pixels in a channel reports `valid_pixels = 0` and NaN for the other
 statistics. Zero is a real intensity value and is included.
