@@ -30,6 +30,18 @@ uv run microflow make-sample-data --out-dir data/synthetic --count 3
 `synthetic_NN.calibration.json` sidecar per image with a 0.5 µm pixel size (`unit: "um"`).
 The same seed always produces identical pixels.
 
+## Configuration
+
+Runs are described in YAML (see `examples/synthetic.yaml`). Validate a file before running it:
+
+```sh
+uv run microflow validate-config examples/synthetic.yaml
+uv run microflow validate-config examples/synthetic.yaml --check-images
+```
+
+Unknown keys, invalid axes, duplicate names, missing calibration (when quantification requires it)
+and unreadable images are reported with the file and field name.
+
 ## Development checks
 
 ```sh

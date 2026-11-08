@@ -18,6 +18,12 @@ def write_image(path: Path, image: npt.NDArray[Any]) -> None:
     tifffile.imwrite(path, image)
 
 
+def read_shape_and_dtype(path: Path) -> tuple[tuple[int, ...], str]:
+    with tifffile.TiffFile(path) as tif:
+        series = tif.series[0]
+        return tuple(series.shape), str(series.dtype)
+
+
 def calibration_path(image_path: Path) -> Path:
     return image_path.with_suffix(".calibration.json")
 

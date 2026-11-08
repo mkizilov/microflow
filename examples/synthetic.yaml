@@ -1,0 +1,36 @@
+# Example pipeline configuration for the synthetic sample images.
+# Generate the images first: uv run microflow make-sample-data --out-dir data/synthetic
+# Relative paths are resolved from this file's directory.
+name: synthetic-demo
+
+dataset:
+  images:
+    - name: synthetic_00
+      path: ../data/synthetic/synthetic_00.tif
+      axes: YX
+      calibration: {pixel_size: 0.5, unit: um}
+    - name: synthetic_01
+      path: ../data/synthetic/synthetic_01.tif
+      axes: YX
+      calibration: {pixel_size: 0.5, unit: um}
+    - name: synthetic_02
+      path: ../data/synthetic/synthetic_02.tif
+      axes: YX
+      calibration: {pixel_size: 0.5, unit: um}
+
+processing:
+  smoothing_sigma: {value: 1.0, unit: um}
+  subtract_background: false
+
+segmentation:
+  method: otsu
+  min_object_area: {value: 4.0, unit: um}
+
+quantification:
+  measures: [area, mean_intensity]
+  require_calibration: true
+
+output:
+  directory: ../results/synthetic-demo
+  formats: [csv]
+  overwrite: false
