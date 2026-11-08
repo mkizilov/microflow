@@ -24,11 +24,7 @@ image-analysis workflow:
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |
 | `microflow.sample_data` | Deterministic synthetic images for demos and tests | implemented |
 | `microflow.cli` | Typer entry point (`microflow`) | implemented |
-| `microflow.preprocessing` | Denoising, background correction, normalisation | placeholder |
-| `microflow.segmentation` | Object detection and masks | placeholder |
-| `microflow.quantification` | Calibrated measurements on segmented objects | placeholder |
-| `microflow.pipelines` | Composition of the stages above | placeholder |
-| `microflow.reporting` | Result tables and reports | placeholder |
+| `microflow.pipelines` | Reserved for a Python composition API; the batch engine composes the stages today (ROADMAP item 22) | empty placeholder |
 
 ## Configuration
 

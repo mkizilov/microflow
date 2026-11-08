@@ -1,12 +1,26 @@
 # MicroFlow
 
-MicroFlow is a Python toolkit for scientific image processing and quantitative analysis.
-This repository currently provides the package scaffold, the command-line entry point, and
-synthetic sample data. Analysis algorithms are not implemented yet.
+MicroFlow is a Python toolkit for scientific image processing and quantitative analysis. It covers
+preprocessing, segmentation, per-object measurement, quality control, batch processing with
+provenance, statistical comparison of biological samples, optional U-Net segmentation, and an
+optional HTTP service.
+
+## Project status
+
+- **Executed:** 52 tests of the service path policy, job store, provenance verifier and study report,
+  run on the standard library.
+- **Not yet executed:** the rest of the test suite (about 680 test functions), Ruff, mypy, the CI
+  workflows, the demonstration, the HTTP service, the machine-learning path, the Docker image and every
+  benchmark.
+- **Blocking:** `uv.lock` has not been generated, so `uv sync --locked`, CI and the Docker build fail
+  until it is.
+
+[ROADMAP.md](ROADMAP.md) lists what is implemented, what is verified and what is open, with effort
+estimates. Read it before relying on any result.
 
 ## Requirements
 
-- Python 3.12 or newer
+- Python 3.12 or 3.13. CI is configured for both; the test suite has not yet run on either.
 - [uv](https://docs.astral.sh/uv/) for environment and dependency management
 
 ## Setup
@@ -74,7 +88,7 @@ says whether it completed, had failures, or was cancelled. See `docs/batch.md`.
 
 ```sh
 uv run microflow export results/synthetic-batch --output results/synthetic-export
-uv run microflow compare-configs examples/batch.yaml examples/batch.yaml
+uv run microflow compare-configs previous-batch.yaml examples/batch.yaml
 uv run microflow cache-status examples/batch.yaml
 ```
 
@@ -159,17 +173,19 @@ uv run pytest
 python3 scripts/generate_reference.py --check
 ```
 
-CI runs these on Python 3.12 and 3.13, plus the optional extras, the demonstration and the reference
-check.
+The CI workflow in `.github/workflows/ci.yml` runs these on Python 3.12 and 3.13, with the optional
+extras, the demonstration and the reference check. It has not yet run; see ROADMAP items 1 to 3.
 
 ## Dependency locking
 
-`uv.lock` is the reproducible lock file. Regenerate it with `uv lock` after changing
-dependencies in `pyproject.toml`, and commit it. CI installs with `uv sync --locked`, which
-fails if the lock file is missing or out of date.
+Dependencies are declared in `pyproject.toml`. The lock file `uv.lock` is **not yet committed**. It
+must be generated once, with network access, using `uv lock`, and then committed. Until then,
+`uv sync --locked` fails, and so do the CI jobs and the Docker build that depend on it. After it
+exists, regenerate it with `uv lock` whenever `pyproject.toml` changes. See ROADMAP item 1.
 
 ## Documentation
 
+- [Roadmap](ROADMAP.md): what is implemented, verified and open, with effort estimates.
 - [Installation](docs/installation.md): versions, extras, troubleshooting.
 - [User guide](docs/user-guide.md): from images to a statistical report, step by step.
 - [Reproducibility](docs/reproducibility.md): what is fixed, what is not, how to rerun.
@@ -192,7 +208,8 @@ verifies the run's recorded files.
 uv run python examples/demo/run_demo.py --clean
 ```
 
-Outputs go to `data/demo/` (git-ignored). Open `data/demo/results/report.html` when it finishes.
+Outputs go to `data/demo/` (git-ignored). Open `data/demo/results/report.html` when it finishes. The
+demonstration has not yet been executed; see ROADMAP item 11.
 
 ## Layout
 

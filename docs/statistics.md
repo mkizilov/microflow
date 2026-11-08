@@ -180,11 +180,14 @@ this module was written.
 
 ## Verification status
 
-**Not run in the environment where this module was written**, which had no network, no NumPy, no
-SciPy and no matplotlib. Verified there: static checks (undefined names, import resolution, call
-signatures, unused code, import cycles, and a check that the package does not import PyTorch), a
-seeded-error check of the static checker, byte-compilation and a line-length scan. Worked examples were
-checked by hand against the definitions: Benjamini-Hochberg and Holm on a four-value family, Hedges' g
-for a pair of two-value groups, and the exact permutation count for a complete separation of three
-against three. Everything else, including every test, Ruff, and mypy, must be run where the dependencies
-are installed.
+Executed: `tests/test_stats_report.py`, 6 of 6 pass, on the standard library (CPython 3.9, through a
+scratch runner). The report reads only the files a run writes.
+
+Checked by hand against the definitions, not executed: Benjamini-Hochberg and Holm on a four-value
+family; Hedges' g for two two-value groups, which is -(8/7)√2 = -1.6162; and the exact permutation count
+for complete separation of three against three, which is 2/20.
+
+Not executed: the estimator, correction, design, data, analysis, output and plotting tests, which need
+NumPy, SciPy, matplotlib and pydantic. The figures have not been viewed. The statistics have not been
+compared with an independent package, and nested designs are not modelled. See `ROADMAP.md` items 11,
+12 and 19.

@@ -134,6 +134,22 @@ reported as missing, and that the published SHA-256 of `abc` is reproduced.
 **Open:** cross-platform bit-identity is not promised. Results are reproducible on one machine with
 fixed library versions.
 
+## Findings from the final review
+
+These were found by reading the code and running the checks listed in `ROADMAP.md`. They are not yet
+fixed.
+
+- **Dead settings.** `ProcessingConfig.smoothing_sigma`, `ProcessingConfig.subtract_background` and
+  `QuantificationConfig.measures` are validated and recorded, but nothing reads them (ROADMAP item 5).
+- **Silently ignored options.** Adaptive and watershed settings are ignored by the methods they do not
+  apply to (ROADMAP item 6).
+- **Batch configuration validation.** `validate-config` rejects batch files. The user guide said
+  otherwise, and that is corrected (ROADMAP item 15).
+- **Import cycles.** Five package-level cycles exist, not one as an earlier review reported. None has
+  been executed under Python's import system (ROADMAP item 4).
+- **Duplicated unit conversion.** `preprocessing/pipeline.py` has a second conversion helper, which can
+  drift from `units.py` (ROADMAP item 23).
+
 ## What remains open
 
 - Every test that depends on NumPy, SciPy, scikit-image, pydantic, typer, matplotlib, pyarrow, PyTorch,

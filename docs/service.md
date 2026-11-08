@@ -179,14 +179,15 @@ service.
 
 ## Verification status
 
-**Not run in the environment where this was written**, which had no network and none of the web or
-scientific packages. Verified there: static checks over the whole tree (undefined names, imports,
-call signatures, unused code, cycles), a check that FastAPI and uvicorn are imported only by the two
-service modules that need them and never by the CLI's import chain (confirmed on a seeded violation),
-the path policy and job state rules by reading, and compilation.
+Executed on the standard library, in the authoring environment, through a scratch pytest-subset runner
+(CPython 3.9, not 3.12):
 
-The tests are written but not run. `tests/test_cli_service_optional.py`, `tests/test_service_paths.py`,
-`tests/test_service_store.py`, `tests/test_service_jobs.py`, `tests/test_service_validation.py` and
-`tests/test_service_settings.py` need only the core dependencies. `tests/test_service_api.py` needs the
-`service` extra and runs in the CI `service` job, including a real batch on synthetic images. The
-HTTP-level assertions about Starlette's routing of encoded slashes are the least certain part.
+- `tests/test_service_paths.py`: 32 of 32 pass. These cover the path policy: traversal, encoded and
+  symbolic-link escapes, hidden names, file kinds, listing bounds and redaction.
+- `tests/test_service_store.py`: 8 of 8 pass, including a 16-thread race for a job claim.
+
+Not executed: `tests/test_service_jobs.py`, `tests/test_service_validation.py`,
+`tests/test_service_settings.py` and `tests/test_cli_service_optional.py`, which need pydantic and typer;
+and `tests/test_service_api.py`, which needs FastAPI and runs in the CI `service` job. The HTTP-level
+assertions about Starlette's routing of encoded slashes are the least certain part. Docker has not been
+built (see `docs/docker.md`). See `ROADMAP.md` items 8, 10 and 13.

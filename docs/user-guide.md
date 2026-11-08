@@ -21,11 +21,15 @@ dataset:
 Axes default to `YX`. Declare others with `axes: CYX`, `axes: ZYX` and so on. MicroFlow reads the
 axes stored in the file and refuses a declaration that does not match it.
 
-Check the configuration before running it:
+Check a pipeline configuration before running it:
 
 ```sh
-uv run microflow validate-config batch.yaml --check-images
+uv run microflow validate-config examples/synthetic.yaml --check-images
 ```
+
+`validate-config` accepts pipeline configurations only. It does not accept batch configurations yet
+(ROADMAP item 15). A batch configuration is checked when `microflow batch` starts: a configuration
+error stops the command with status 1 before any image is processed.
 
 ## 2. Segment and measure a batch
 
