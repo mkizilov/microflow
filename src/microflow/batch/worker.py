@@ -246,7 +246,7 @@ def _selected_stack(planes: _Planes, channel: int, height: int, width: int) -> n
 
 def _write_csv(path: Path, columns: list[str], rows: list[dict[str, Any]]) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer = csv.DictWriter(handle, fieldnames=columns, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 

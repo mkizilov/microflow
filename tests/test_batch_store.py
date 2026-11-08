@@ -8,6 +8,7 @@ import pytest
 from microflow.batch import store
 from microflow.batch.records import ItemRecord, OutputFile
 from microflow.batch.store import BatchError
+from microflow.provenance.hashing import digest
 
 
 def _valid_item(item_dir: Path, *, fingerprint: str = "f", input_sha: str = "in") -> ItemRecord:
@@ -117,7 +118,7 @@ def test_item_directory_names_are_safe_and_stay_distinct() -> None:
 
 
 def test_digest_does_not_depend_on_key_order() -> None:
-    assert store.digest({"a": 1, "b": [2]}) == store.digest({"b": [2], "a": 1})
+    assert digest({"a": 1, "b": [2]}) == digest({"b": [2], "a": 1})
 
 
 def test_reset_removes_final_markers_and_partial_files_but_keeps_results(tmp_path: Path) -> None:

@@ -5,16 +5,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from microflow.provenance.record import OutputFile, ProvenanceRecord
+
 ItemStatus = Literal["ok", "failed", "cancelled"]
 RunStatus = Literal["complete", "completed_with_failures", "cancelled"]
-
-
-class OutputFile(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    path: str
-    sha256: str
-    size_bytes: int
 
 
 class ItemRecord(BaseModel):
@@ -39,7 +33,8 @@ class ItemRecord(BaseModel):
 
 class BatchManifest(BaseModel):
     """Final record of a finished run. It is written only when the run ends, so a manifest
-    exists only for a run that finished; its ``status`` says how it finished."""
+    exists only for a run that finished; its ``status`` says how it finished. ``provenance``
+    records what produced the results (see :mod:`microflow.provenance`)."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -53,6 +48,7 @@ class BatchManifest(BaseModel):
     peak_estimated_mb: float
     counts: dict[str, int]
     items: tuple[ItemRecord, ...]
+    provenance: ProvenanceRecord
 
 
 @dataclass(frozen=True)

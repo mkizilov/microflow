@@ -9,28 +9,28 @@ only when the run finishes.
 import csv
 import hashlib
 import io
-import json
 import os
 import re
 import shutil
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
 
-from microflow.batch.records import ItemRecord, OutputFile
+from microflow.batch.records import ItemRecord
+from microflow.provenance.hashing import sha256_file
+from microflow.provenance.record import OutputFile
 
 RESULT_FILE = "result.json"
 ITEMS_DIR = "items"
 MANIFEST_FILE = "batch_manifest.json"
 SUMMARY_FILE = "summary.csv"
 RUN_FILE = "run.json"
+ANALYSIS_FILE = "analysis.json"
 LOCK_FILE = "run.lock"
 CANCEL_FILE = "cancel.requested"
 PARTIAL = ".partial"
 NO_PREVIOUS = "no previous result"
 CACHED = "cached"
-_CHUNK_BYTES = 1 << 20
 _SUMMARY_COLUMNS = (
     "name",
     "status",
@@ -46,19 +46,6 @@ _SUMMARY_COLUMNS = (
 
 class BatchError(RuntimeError):
     """The batch cannot start or continue, for example because another run holds the directory."""
-
-
-def digest(payload: Any) -> str:
-    text = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def sha256_file(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(_CHUNK_BYTES), b""):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 
 def item_directory_name(name: str) -> str:
@@ -93,6 +80,17 @@ def clear_item(item_dir: Path) -> None:
     item_dir.mkdir(parents=True)
 
 
+def validate_outputs(item_dir: Path, record: ItemRecord) -> str | None:
+    """Why the recorded outputs of an item cannot be trusted, or None if they all check out."""
+    for output in record.outputs.values():
+        path = item_dir / output.path
+        if not path.is_file():
+            return f"output {output.path} is missing"
+        if path.stat().st_size != output.size_bytes or sha256_file(path) != output.sha256:
+            return f"output {output.path} was modified"
+    return None
+
+
 def check_cache(item_dir: Path, input_sha: str, fingerprint: str) -> tuple[ItemRecord | None, str]:
     """Return the recorded result if it can be reused, otherwise None and the reason.
 
@@ -112,12 +110,9 @@ def check_cache(item_dir: Path, input_sha: str, fingerprint: str) -> tuple[ItemR
         return None, "input changed"
     if previous.config_fingerprint != fingerprint:
         return None, "configuration changed"
-    for output in previous.outputs.values():
-        path = item_dir / output.path
-        if not path.is_file():
-            return None, f"output {output.path} is missing"
-        if path.stat().st_size != output.size_bytes or sha256_file(path) != output.sha256:
-            return None, f"output {output.path} was modified"
+    problem = validate_outputs(item_dir, previous)
+    if problem is not None:
+        return None, problem
     return previous.model_copy(update={"resumed": True}), CACHED
 
 
@@ -131,7 +126,7 @@ def reset_run_directory(run_dir: Path) -> None:
 
 def write_summary(path: Path, items: tuple[ItemRecord, ...]) -> None:
     buffer = io.StringIO()
-    writer = csv.DictWriter(buffer, fieldnames=_SUMMARY_COLUMNS)
+    writer = csv.DictWriter(buffer, fieldnames=_SUMMARY_COLUMNS, lineterminator="\n")
     writer.writeheader()
     for item in items:
         writer.writerow(

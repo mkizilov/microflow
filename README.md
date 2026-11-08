@@ -70,6 +70,20 @@ command again resumes: only images whose inputs, settings and outputs have chang
 reprocessed. The run's `batch_manifest.json` appears only when the run finishes, and its status
 says whether it completed, had failures, or was cancelled. See `docs/batch.md`.
 
+## Provenance and exported results
+
+```sh
+uv run microflow export results/synthetic-batch --output results/synthetic-export
+uv run microflow compare-configs examples/batch.yaml examples/batch.yaml
+uv run microflow cache-status examples/batch.yaml
+```
+
+`export` writes the batch's measurements as CSV and Parquet, with a data dictionary (units and
+descriptions) and a provenance record. Each run records its software and algorithm versions,
+resolved configuration, input hashes, runtime and timestamps. A run directory and an export
+directory refuse to overwrite results of a different analysis unless `--overwrite` is given. See
+`docs/provenance.md`.
+
 ## Development checks
 
 ```sh

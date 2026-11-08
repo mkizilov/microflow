@@ -255,16 +255,21 @@ def test_modified_output_triggers_a_rerun_of_that_image(
     assert manifest.status == "complete"
 
 
-def test_configuration_change_reruns_every_image(
+def test_configuration_change_is_refused_until_overwrite_is_requested(
     tmp_path: Path, three_images: list[dict[str, Any]]
 ) -> None:
-    run_batch(_config(tmp_path, three_images))
+    first = run_batch(_config(tmp_path, three_images))
     changed = _config(
         tmp_path,
         three_images,
         segmentation={"min_object_area": {"value": 4, "unit": "um"}},
     )
-    manifest = run_batch(changed)
+    with pytest.raises(BatchError, match="different analysis"):
+        run_batch(changed)
+    kept = (tmp_path / "out" / MANIFEST_FILE).read_text(encoding="utf-8")
+    assert kept == first.model_dump_json(indent=2)
+
+    manifest = run_batch(changed, overwrite=True)
     assert manifest.status == "complete"
     assert manifest.counts["resumed"] == 0
 
@@ -324,8 +329,8 @@ def test_stale_partial_files_are_removed_and_a_fake_success_is_not_trusted(
     tmp_path: Path, three_images: list[dict[str, Any]]
 ) -> None:
     config = _config(tmp_path, three_images[:1])
+    assert run_batch(config).status == "complete"
     item_dir = _item_dir(config, "img_1")
-    item_dir.mkdir(parents=True)
     (item_dir / "labels.tif.partial").write_bytes(b"half written")
     fake = ItemRecord(name="img_1", status="ok", input_sha256="bogus")
     (item_dir / RESULT_FILE).write_text(fake.model_dump_json(), encoding="utf-8")

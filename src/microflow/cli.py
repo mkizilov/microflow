@@ -18,10 +18,21 @@ from microflow.config import (
     load_quality_config,
     load_segmentation_config,
 )
-from microflow.batch import BatchError, load_batch_config, run_batch
+from microflow.batch import (
+    ANALYSIS_SECTIONS,
+    BatchError,
+    ExportError,
+    analysis_id,
+    export_run,
+    inspect_cache,
+    load_batch_config,
+    run_batch,
+)
 from microflow.batch.records import ProgressEvent
 from microflow.batch.store import MANIFEST_FILE
 from microflow.dataset import inspect_dataset
+from microflow.provenance.compare import diff_configs
+from microflow.provenance.guard import OutputConflictError
 from microflow.image_io import write_image
 from microflow.loading import ImageLoadError, LoadedImage, load_image
 from microflow.preprocessing import PreprocessingError, preprocess
@@ -355,6 +366,13 @@ def batch_command(
         int | None,
         typer.Option(min=1, help="Images processed in parallel; overrides the configuration."),
     ] = None,
+    overwrite: Annotated[
+        bool,
+        typer.Option(
+            "--overwrite",
+            help="Replace results of a different analysis in the output directory.",
+        ),
+    ] = False,
 ) -> None:
     """Process every image in a batch, with resume.
 
@@ -371,7 +389,9 @@ def batch_command(
         f"output {config.output_directory}"
     )
     try:
-        manifest = run_batch(config, progress=_print_progress, workers=workers)
+        manifest = run_batch(
+            config, progress=_print_progress, workers=workers, overwrite=overwrite
+        )
     except (BatchError, OSError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
@@ -389,6 +409,95 @@ def batch_command(
 
 def _print_progress(event: ProgressEvent) -> None:
     typer.echo(f"[{event.completed}/{event.total}] {event.name}: {event.status} ({event.detail})")
+
+
+@app.command("export")
+def export_command(
+    run_dir: Annotated[Path, typer.Argument(help="Output directory of a batch run.")],
+    output: Annotated[Path, typer.Option(help="Directory for the exported files.")],
+    export_format: Annotated[
+        list[str] | None,
+        typer.Option("--format", help="csv or parquet; repeat to choose several."),
+    ] = None,
+    allow_partial: Annotated[
+        bool,
+        typer.Option(
+            "--allow-partial",
+            help="Export successful images from a run that did not complete.",
+        ),
+    ] = False,
+    overwrite: Annotated[
+        bool,
+        typer.Option("--overwrite", help="Replace exported results of a different analysis."),
+    ] = False,
+) -> None:
+    """Export a finished batch run as CSV and/or Parquet, with a data dictionary and provenance."""
+    try:
+        result = export_run(
+            run_dir,
+            output,
+            formats=export_format or ["csv", "parquet"],
+            allow_partial=allow_partial,
+            overwrite=overwrite,
+        )
+    except (ExportError, OutputConflictError, OSError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    for warning in result.warnings:
+        typer.echo(f"warning: {warning}")
+    typer.echo(
+        f"exported {result.rows} row(s) from {len(result.images)} image(s) to {result.directory}"
+    )
+    for name in result.files:
+        typer.echo(f"wrote {name}")
+
+
+@app.command("compare-configs")
+def compare_configs_command(
+    old: Annotated[Path, typer.Argument(help="Batch configuration (the earlier one).")],
+    new: Annotated[Path, typer.Argument(help="Batch configuration (the later one).")],
+) -> None:
+    """List the settings that differ, and whether they change the analysis identity."""
+    try:
+        before = load_batch_config(old)
+        after = load_batch_config(new)
+    except ConfigError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    old_id, new_id = analysis_id(before), analysis_id(after)
+    same = "same" if old_id == new_id else "different"
+    typer.echo(f"analysis identity: {same} ({old_id[:12]} vs {new_id[:12]})")
+    changes = diff_configs(
+        before.model_dump(mode="json"),
+        after.model_dump(mode="json"),
+        analysis_sections=ANALYSIS_SECTIONS,
+    )
+    if not changes:
+        typer.echo("no differences")
+    for change in changes:
+        marker = "  [changes analysis]" if change.affects_analysis else ""
+        typer.echo(f"{change.path}: {change.old!r} -> {change.new!r}{marker}")
+
+
+@app.command("cache-status")
+def cache_status_command(
+    config_path: Annotated[Path, typer.Argument(help="Batch YAML configuration.")],
+) -> None:
+    """Report which cached results remain valid for a configuration. Changes nothing."""
+    try:
+        config = load_batch_config(config_path)
+        report = inspect_cache(config)
+    except (ConfigError, OSError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    if report.directory_analysis is None:
+        state = "no recorded analysis"
+    else:
+        state = "matches" if report.analysis_matches else "belongs to a different analysis"
+    typer.echo(f"analysis {report.analysis_id[:12]}: output directory {state}")
+    for image in report.images:
+        verdict = "reusable" if image.reusable else "rerun"
+        typer.echo(f"  {image.name}: {verdict} ({image.reason})")
 
 
 @app.command("make-sample-data")
