@@ -31,6 +31,29 @@ class Length(BaseModel):
         return Length(value=self.value * factor, unit=unit)
 
 
+def _require_calibration(calibration: Calibration | None, quantity: str) -> Calibration:
+    if calibration is None:
+        raise ValueError(
+            f"{quantity} needs pixel calibration; the image has none, "
+            "so give its pixel size and unit"
+        )
+    return calibration
+
+
+def to_pixels(length: Length, calibration: Calibration | None) -> float:
+    """Convert a physical length to a number of pixels using the image calibration."""
+    calibration = _require_calibration(
+        calibration, f"a length of {length.value} {length.unit}"
+    )
+    return length.to(calibration.unit).value / calibration.pixel_size
+
+
+def area_to_pixels(area: Area, calibration: Calibration | None) -> float:
+    """Convert a physical area to a number of pixels using the image calibration."""
+    calibration = _require_calibration(calibration, f"an area of {area.value} {area.unit}²")
+    return area.to(calibration.unit).value / calibration.pixel_size**2
+
+
 class Area(BaseModel):
     """A physical area, expressed as the square of a length unit (for example µm²)."""
 

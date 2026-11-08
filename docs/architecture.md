@@ -11,6 +11,7 @@ image-analysis workflow:
 | `microflow.loading` | TIFF, OME-TIFF and `.npy` loading with dtype, axes, calibration and channel metadata preserved | implemented |
 | `microflow.preprocessing` | Flat-field correction, background, Gaussian and median filters, artifact masking, percentile normalisation; steps in YAML | implemented |
 | `microflow.reporting.preview` | Before/after PNG previews (display-only stretch) | implemented |
+| `microflow.segmentation` | Otsu, fixed and adaptive thresholds; opening, closing; labelling; distance-transform watershed; small-object and border removal; Dice/IoU | implemented |
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |
 | `microflow.sample_data` | Deterministic synthetic images for demos and tests | implemented |
 | `microflow.cli` | Typer entry point (`microflow`) | implemented |
@@ -77,6 +78,24 @@ plus `OUT.provenance.json`. The sidecar lists every stage with its parameters an
 - `mask_artifacts` compares current values, so place it before arithmetic steps.
 - Median filtering uses a NaN-aware path (per-pixel) when invalid pixels are present, which is
   slower on large images.
+
+## Segmentation
+
+`microflow segment INPUT --output labels.tif [--config seg.yaml] [--reference truth.tif]
+[--pixel-size N --unit U]` writes an int32 label image (0 is background) and
+`labels.segmentation.json` with the settings, the threshold used on each plane, object counts,
+and Dice and IoU when a reference is given. See `examples/segment.yaml`.
+
+- Settings are validated by `SegmentationConfig`. Unknown keys are rejected.
+- Each Y-X plane is segmented independently. Labels are numbered 1..N per plane, in raster order
+  of each object's first pixel, so they are stable across runs.
+- Order: threshold, opening, closing, connected components (8-connected), optional watershed,
+  minimum-area removal (an object of exactly the minimum size is kept), optional border removal.
+- Lengths and areas need calibration. Adaptive block size is rounded to an odd pixel count of at
+  least 3.
+- NaN pixels are background and do not affect thresholds.
+- Dice = 2|A∩B|/(|A|+|B|); IoU = |A∩B|/|A∪B|, on foreground pixels. Two empty masks score 1.0.
+- The watershed uses distance-transform peaks at least `watershed_min_distance` apart as markers.
 
 ## Conventions
 

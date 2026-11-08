@@ -5,7 +5,7 @@ Unknown keys are rejected so that misspelled options fail loudly instead of bein
 """
 
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 import yaml
 from pydantic import (
@@ -88,17 +88,33 @@ class ProcessingConfig(BaseModel):
 
 
 class SegmentationConfig(BaseModel):
+    """Classical segmentation settings. Lengths and areas convert through the image calibration."""
+
     model_config = ConfigDict(extra="forbid")
 
-    method: Literal["otsu", "threshold"] = "otsu"
+    method: Literal["otsu", "threshold", "adaptive"] = "otsu"
     threshold: float | None = None
+    adaptive_block_size: Length = Length(value=10.0, unit="um")
+    adaptive_offset: float = 0.0
+    opening_radius: Length | None = None
+    closing_radius: Length | None = None
+    watershed: bool = False
+    watershed_min_distance: Length = Length(value=2.0, unit="um")
     min_object_area: Area = Area(value=4.0, unit="um")
+    exclude_border: bool = False
+
+    @field_validator("adaptive_block_size", "watershed_min_distance")
+    @classmethod
+    def _positive_length(cls, value: Length) -> Length:
+        if value.value <= 0:
+            raise ValueError("must be greater than zero")
+        return value
 
     @model_validator(mode="after")
     def _threshold_matches_method(self) -> "SegmentationConfig":
         if self.method == "threshold" and self.threshold is None:
             raise ValueError("threshold is required when method is 'threshold'")
-        if self.method == "otsu" and self.threshold is not None:
+        if self.method != "threshold" and self.threshold is not None:
             raise ValueError("threshold is only used when method is 'threshold'")
         return self
 
@@ -144,13 +160,28 @@ class MicroFlowConfig(BaseModel):
         return self
 
 
-def load_config(path: Path) -> MicroFlowConfig:
+def _read_yaml(path: Path) -> Any:
     try:
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
     except OSError as exc:
         raise ConfigError(f"{path}: cannot read file: {exc.strerror}") from exc
     except yaml.YAMLError as exc:
         raise ConfigError(f"{path}: invalid YAML: {exc}") from exc
+
+
+def load_segmentation_config(path: Path) -> SegmentationConfig:
+    """Load segmentation settings from a YAML mapping. An empty file means the defaults."""
+    raw = _read_yaml(path)
+    if raw is None:
+        raw = {}
+    try:
+        return SegmentationConfig.model_validate(raw)
+    except ValidationError as exc:
+        raise ConfigError(format_validation_error(path, exc)) from exc
+
+
+def load_config(path: Path) -> MicroFlowConfig:
+    raw = _read_yaml(path)
     if not isinstance(raw, dict):
         raise ConfigError(f"{path}: top level must be a mapping of configuration sections")
     try:

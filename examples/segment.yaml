@@ -1,0 +1,18 @@
+# Classical segmentation settings for `microflow segment`.
+# Length and area values convert through the image calibration (the file's own, or
+# --pixel-size and --unit on the command line).
+#
+#   uv run microflow segment data/synthetic/synthetic_00.tif \
+#       --output results/synthetic_00_labels.tif \
+#       --config examples/segment.yaml \
+#       --pixel-size 0.5 --unit um
+method: otsu                 # otsu | threshold | adaptive
+# threshold: 250             # required when method is threshold; not allowed otherwise
+adaptive_block_size: {value: 10, unit: um}   # adaptive: neighbourhood size
+adaptive_offset: 0           # adaptive: foreground is brighter than local mean + offset
+opening_radius: {value: 0.5, unit: um}       # removes thin bridges and speckle
+closing_radius: {value: 0.5, unit: um}       # fills small gaps inside objects
+watershed: true              # split touching objects along distance-transform ridges
+watershed_min_distance: {value: 2, unit: um}
+min_object_area: {value: 4, unit: um}        # objects with fewer pixels are removed
+exclude_border: false        # true drops objects that touch the image edge
