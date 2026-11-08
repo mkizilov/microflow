@@ -14,8 +14,10 @@ def read_image(path: Path) -> npt.NDArray[Any]:
     return np.asarray(tifffile.imread(path))
 
 
-def write_image(path: Path, image: npt.NDArray[Any]) -> None:
-    tifffile.imwrite(path, image)
+def write_image(path: Path, image: npt.NDArray[Any], axes: str | None = None) -> None:
+    """Write an image. Pass ``axes`` for stacks so the file records what each dimension means."""
+    metadata = {"axes": axes} if axes else {}
+    tifffile.imwrite(path, image, metadata=metadata)
 
 
 def read_shape_and_dtype(path: Path) -> tuple[tuple[int, ...], str]:

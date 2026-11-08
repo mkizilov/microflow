@@ -5,7 +5,7 @@ Unknown keys are rejected so that misspelled options fail loudly instead of bein
 """
 
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, TypeVar
 
 import yaml
 from pydantic import (
@@ -160,6 +160,32 @@ class MicroFlowConfig(BaseModel):
         return self
 
 
+class QualityControlConfig(BaseModel):
+    """Thresholds for flagging suspicious segmentation results.
+
+    Fractions are shares of pixels in one Y-X plane. Area limits convert through the image
+    calibration.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    max_foreground_fraction: float = Field(default=0.6, ge=0, le=1)
+    max_saturated_fraction: float = Field(default=0.001, ge=0, le=1)
+    saturation_level: float | None = None
+    max_invalid_fraction: float = Field(default=0.01, ge=0, le=1)
+    min_object_area: Area | None = None
+    max_object_area: Area | None = None
+
+    @model_validator(mode="after")
+    def _area_range_ordered(self) -> "QualityControlConfig":
+        if self.min_object_area is None or self.max_object_area is None:
+            return self
+        minimum = self.min_object_area.to(self.max_object_area.unit).value
+        if minimum > self.max_object_area.value:
+            raise ValueError("min_object_area must not exceed max_object_area")
+        return self
+
+
 def _read_yaml(path: Path) -> Any:
     try:
         return yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -169,15 +195,26 @@ def _read_yaml(path: Path) -> Any:
         raise ConfigError(f"{path}: invalid YAML: {exc}") from exc
 
 
-def load_segmentation_config(path: Path) -> SegmentationConfig:
-    """Load segmentation settings from a YAML mapping. An empty file means the defaults."""
+_Section = TypeVar("_Section", bound=BaseModel)
+
+
+def _load_section(path: Path, model: type[_Section]) -> _Section:
+    """Validate a YAML mapping as one settings model. An empty file means the defaults."""
     raw = _read_yaml(path)
     if raw is None:
         raw = {}
     try:
-        return SegmentationConfig.model_validate(raw)
+        return model.model_validate(raw)
     except ValidationError as exc:
         raise ConfigError(format_validation_error(path, exc)) from exc
+
+
+def load_segmentation_config(path: Path) -> SegmentationConfig:
+    return _load_section(path, SegmentationConfig)
+
+
+def load_quality_config(path: Path) -> QualityControlConfig:
+    return _load_section(path, QualityControlConfig)
 
 
 def load_config(path: Path) -> MicroFlowConfig:

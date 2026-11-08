@@ -13,7 +13,9 @@ from microflow import __version__
 from microflow.config import (
     ConfigError,
     SegmentationConfig,
+    QualityControlConfig,
     load_config,
+    load_quality_config,
     load_segmentation_config,
 )
 from microflow.dataset import inspect_dataset
@@ -21,7 +23,10 @@ from microflow.image_io import write_image
 from microflow.loading import ImageLoadError, LoadedImage, load_image
 from microflow.preprocessing import PreprocessingError, preprocess
 from microflow.preprocessing.steps import load_steps
+from microflow.reporting.figures import render_figures
+from microflow.reporting.html import render_html
 from microflow.reporting.preview import first_plane, write_before_after_png
+from microflow.reporting.qc import build_quality_report, inputs_from_images
 from microflow.sample_data import write_sample_dataset
 from microflow.quantification import IntensitySource, MeasurementError, measure_plane
 from microflow.quantification.records import Source
@@ -95,7 +100,7 @@ def preprocess_image(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
-    write_image(output, result.data)
+    write_image(output, result.data, result.axes)
     provenance_path = output.with_suffix(".provenance.json")
     provenance_path.write_text(
         json.dumps(result.provenance(str(input_path)), indent=2) + "\n", encoding="utf-8"
@@ -158,7 +163,7 @@ def segment_command(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
-    write_image(output, result.labels)
+    write_image(output, result.labels, result.axes)
     record = {
         "source": str(input_path),
         "axes": result.axes,
@@ -273,6 +278,71 @@ def _check_corrected_provenance(path: Path) -> str | None:
             "Normalisation rescales intensities, so measure before normalising."
         )
     return None
+
+
+@app.command("qc-report")
+def qc_report_command(
+    input_path: Annotated[Path, typer.Argument(help="Raw image (TIFF or .npy).")],
+    labels_path: Annotated[
+        Path, typer.Option("--labels", help="Label image from `microflow segment`.")
+    ],
+    output: Annotated[Path, typer.Option(help="Output self-contained HTML report.")],
+    preprocessed: Annotated[
+        Path | None, typer.Option(help="Preprocessed image on the same grid (optional).")
+    ] = None,
+    qc_config: Annotated[
+        Path | None, typer.Option("--qc-config", help="YAML with quality-control thresholds.")
+    ] = None,
+    png_dir: Annotated[
+        Path | None, typer.Option(help="Also write each figure as a PNG into this directory.")
+    ] = None,
+    fail_on_flags: Annotated[
+        bool,
+        typer.Option(
+            "--fail-on-flags", help="Exit with status 2 if any result is flagged (for CI)."
+        ),
+    ] = False,
+    pixel_size: Annotated[
+        float | None,
+        typer.Option(help="Pixel size; overrides the file's calibration. Needs --unit."),
+    ] = None,
+    unit: Annotated[
+        str | None, typer.Option(help="Length unit for --pixel-size: nm, um, mm or m.")
+    ] = None,
+) -> None:
+    """Build a quality-control report: figures, segmentation summary and flagged results."""
+    try:
+        raw_image = load_image(input_path, calibration=_calibration_option(pixel_size, unit))
+        labels = load_image(labels_path)
+        pre = load_image(preprocessed) if preprocessed is not None else None
+        settings = (
+            load_quality_config(qc_config) if qc_config is not None else QualityControlConfig()
+        )
+        inputs = inputs_from_images(
+            raw_image,
+            labels,
+            settings,
+            preprocessed=pre,
+            title=f"Quality control: {input_path.name}",
+        )
+        report = build_quality_report(inputs)
+        figures = render_figures(inputs, report)
+        output.write_text(render_html(report, figures), encoding="utf-8")
+        if png_dir is not None:
+            png_dir.mkdir(parents=True, exist_ok=True)
+            for name, data in figures.items():
+                (png_dir / f"{name}.png").write_bytes(data)
+    except (ImageLoadError, ConfigError, ValueError, OSError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    for flag in report.flags:
+        typer.echo(f"flag {flag.code} [{flag.plane}]: {flag.message}")
+    typer.echo(
+        f"wrote {output} ({len(report.flags)} flag(s), {len(report.planes)} plane(s))"
+    )
+    if fail_on_flags and report.flags:
+        raise typer.Exit(code=2)
 
 
 @app.command("make-sample-data")

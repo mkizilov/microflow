@@ -1,0 +1,9 @@
+# Quality-control thresholds for `microflow qc-report --qc-config`.
+# Every key is optional. Fractions are shares of pixels in one Y-X plane.
+max_foreground_fraction: 0.6      # flag if objects cover more than this share of a plane
+max_saturated_fraction: 0.001     # flag if more than this share of pixels are saturated
+# saturation_level: 4095          # saturation value; defaults to the integer type's maximum
+                                  # (floats are not saturation-checked unless this is set)
+max_invalid_fraction: 0.01        # flag if more than this share of pixels are NaN or infinite
+min_object_area: {value: 5, unit: um}     # needs pixel calibration
+max_object_area: {value: 500, unit: um}   # needs pixel calibration

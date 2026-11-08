@@ -13,6 +13,7 @@ image-analysis workflow:
 | `microflow.reporting.preview` | Before/after PNG previews (display-only stretch) | implemented |
 | `microflow.segmentation` | Otsu, fixed and adaptive thresholds; opening, closing; labelling; distance-transform watershed; small-object and border removal; Dice/IoU | implemented |
 | `microflow.quantification` | Per-object geometry and raw/corrected intensity statistics, with physical units when calibrated; CSV table | implemented |
+| `microflow.reporting` | Quality control (flags, summary), headless matplotlib figures, self-contained HTML; separate from analysis | implemented |
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |
 | `microflow.sample_data` | Deterministic synthetic images for demos and tests | implemented |
 | `microflow.cli` | Typer entry point (`microflow`) | implemented |
@@ -105,6 +106,17 @@ and Dice and IoU when a reference is given. See `examples/segment.yaml`.
 object; intensity statistics are reported per source (`raw` or `corrected`) and channel. Lengths
 are in the calibration unit when the image is calibrated, otherwise in pixels, and column names
 state which. Every definition and assumption is in `docs/measurements.md`.
+
+## Quality-control reports
+
+`microflow qc-report RAW --labels LABELS --output report.html` writes a self-contained HTML file
+with flags (empty masks, excessive coverage, saturation, invalid pixels, objects outside the
+configured area range), a per-plane summary, six headless PNG figures, and the settings used.
+`--png-dir` also writes the figures; `--fail-on-flags` exits with status 2 when anything is flagged.
+See `docs/quality-control.md`.
+
+Reporting depends on the numerical packages, never the reverse. Only `microflow.reporting` imports
+matplotlib.
 
 ## Conventions
 

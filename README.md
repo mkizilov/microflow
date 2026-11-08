@@ -42,6 +42,22 @@ uv run microflow validate-config examples/synthetic.yaml --check-images
 Unknown keys, invalid axes, duplicate names, missing calibration (when quantification requires it)
 and unreadable images are reported with the file and field name.
 
+## Quality-control reports
+
+```sh
+uv run microflow qc-report data/synthetic/synthetic_00.tif \
+    --labels results/synthetic_00_labels.tif \
+    --output results/synthetic_00_qc.html \
+    --png-dir results/figures \
+    --qc-config examples/qc.yaml \
+    --pixel-size 0.5 --unit um
+```
+
+The HTML report is self-contained (figures are embedded) and lists flagged results such as empty
+masks, excessive coverage, saturation, and objects outside the configured area range. Add
+`--fail-on-flags` in CI to exit with status 2 when anything is flagged. See
+`docs/quality-control.md`.
+
 ## Development checks
 
 ```sh
