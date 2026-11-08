@@ -1,0 +1,40 @@
+# Two-condition comparison on the synthetic example. Generate the measurements first:
+#   uv run microflow stats example data/stats-example
+# Paths resolve relative to this file. Each donor is one biological sample; its two fields of view are
+# technical replicates, so they are images of one sample, never separate samples.
+name: synthetic-two-condition
+measurements: ../../data/stats-example/measurements.csv
+data_dictionary: ../../data/stats-example/data_dictionary.csv
+output_directory: ../../stats-results/synthetic-two-condition
+measures:
+  - area_um2
+  - eccentricity
+  - raw_c0_mean
+per_sample: mean
+groups:
+  control:
+    samples:
+      - {sample: control-01, items: [control-01_field0, control-01_field1]}
+      - {sample: control-02, items: [control-02_field0, control-02_field1]}
+      - {sample: control-03, items: [control-03_field0, control-03_field1]}
+      - {sample: control-04, items: [control-04_field0, control-04_field1]}
+  treated:
+    samples:
+      - {sample: treated-01, items: [treated-01_field0, treated-01_field1]}
+      - {sample: treated-02, items: [treated-02_field0, treated-02_field1]}
+      - {sample: treated-03, items: [treated-03_field0, treated-03_field1]}
+      - {sample: treated-04, items: [treated-04_field0, treated-04_field1]}
+comparisons:
+  - [control, treated]
+bootstrap:
+  resamples: 10000
+  confidence: 0.95
+  seed: 0
+permutation:
+  resamples: 10000
+  max_exact: 20000
+  seed: 0
+correction: bh
+alpha: 0.05
+min_samples_per_group: 2
+plots: true

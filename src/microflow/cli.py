@@ -33,6 +33,7 @@ from microflow.batch.records import ProgressEvent
 from microflow.batch.store import MANIFEST_FILE
 from microflow.dataset import inspect_dataset
 from microflow.ml.cli import ml_app
+from microflow.stats.cli import stats_app
 from microflow.plugins import PluginError
 from microflow.plugins.registry import configure, discover
 from microflow.provenance.compare import diff_configs
@@ -507,6 +508,7 @@ def cache_status_command(
 plugins_app = typer.Typer(help="Inspect installed plugins. Listing runs no plugin code.")
 app.add_typer(plugins_app, name="plugins")
 app.add_typer(ml_app, name="ml")
+app.add_typer(stats_app, name="stats")
 
 
 @plugins_app.command("list")

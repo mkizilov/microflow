@@ -118,6 +118,21 @@ uv run microflow ml compare out/labels.tif classical/labels.tif
 See `docs/ml-inference.md` for the model checks, device fallback, tiling, quality flags and the
 preprocessing a model needs.
 
+## Comparing groups of biological samples
+
+`microflow stats` compares groups on exported measurements. The biological sample is the unit of
+inference, so segmented objects and images are never counted as independent replicates. Every image
+and sample is assigned explicitly in a design file.
+
+```sh
+uv run microflow stats example data/stats-example
+uv run microflow stats check examples/stats/design.yaml
+uv run microflow stats run examples/stats/design.yaml
+```
+
+See `docs/statistics.md` for the design format, the assumptions behind each estimate, the corrections,
+and the outputs.
+
 ## Development checks
 
 ```sh
