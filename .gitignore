@@ -15,3 +15,5 @@ build/
 data/synthetic/
 results/
 batch-results/
+# Tool-managed session state (not project source)
+.cortexkit/
