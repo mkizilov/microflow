@@ -1,6 +1,7 @@
 import csv
 import json
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -10,7 +11,7 @@ from microflow.stats.study import run_study
 from stats_fixtures import design_mapping, write_design, write_dictionary, write_measurements
 
 
-def _project(tmp_path: Path, **overrides: object) -> Path:
+def _project(tmp_path: Path, **overrides: Any) -> Path:
     write_measurements(tmp_path)
     write_dictionary(tmp_path)
     return write_design(tmp_path, design_mapping(tmp_path, **overrides))

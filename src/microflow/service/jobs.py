@@ -180,12 +180,13 @@ class JobManager:
                     "invalid_config",
                     "the output directory changed after submission; submit the configuration again",
                 )
+
+            def progress(done: int, total: int) -> None:
+                self._store.update_progress(job_id, done, total)
+
             outcome = self._runner(
                 prepared.config,
-                RunControl(
-                    cancelled=control.is_set,
-                    progress=lambda done, total: self._store.update_progress(job_id, done, total),
-                ),
+                RunControl(cancelled=control.is_set, progress=progress),
             )
             self._finish(job_id, outcome)
         except ServiceError as exc:

@@ -50,13 +50,13 @@ def _config(root: Path, plugins: str = "") -> Path:
     (root / "data").mkdir(parents=True, exist_ok=True)
     write_image(root / "data" / "img.tif", np.full((8, 8), 100, dtype=np.uint16))
     text = textwrap.dedent(
-        f"""
+        """
         name: cli-plugins
         dataset:
           images:
             - name: img
               path: data/img.tif
-              calibration: {{pixel_size: 1.0, unit: um}}
+              calibration: {pixel_size: 1.0, unit: um}
         output_directory: out
         workers: 1
         """

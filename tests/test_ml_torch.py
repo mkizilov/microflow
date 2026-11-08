@@ -17,14 +17,14 @@ torch = pytest.importorskip("torch")
 from microflow.image_io import write_image  # noqa: E402
 from microflow.ml import train as train_module  # noqa: E402
 from microflow.ml.checkpoint import (  # noqa: E402
-    CHECKPOINT_SCHEMA,
     load_checkpoint,
     save_checkpoint,
 )
 from microflow.ml.config import TrainingConfig  # noqa: E402
 from microflow.ml.evaluate import evaluate  # noqa: E402
-from microflow.ml.inference import resolve_device  # noqa: E402
+from microflow.ml.inference import resolve_device, score_pairs  # noqa: E402
 from microflow.ml.losses import segmentation_loss, soft_dice_loss  # noqa: E402
+from microflow.ml.model_spec import CHECKPOINT_SCHEMA  # noqa: E402
 from microflow.ml.preparation import ImagePair, prepare  # noqa: E402
 from microflow.ml.runtime import CheckpointError, MLError  # noqa: E402
 from microflow.ml.torch_data import PatchDataset  # noqa: E402
@@ -173,8 +173,8 @@ def test_training_gives_gradients_only_training_samples_and_scores_only_validati
 ) -> None:
     seen_for_training: set[str] = set()
     seen_for_validation: set[str] = set()
-    real_dataset = train_module.PatchDataset
-    real_score = train_module.score_pairs
+    real_dataset = PatchDataset
+    real_score = score_pairs
 
     def dataset_spy(pairs: Sequence[ImagePair], **kwargs: Any) -> PatchDataset:
         seen_for_training.update(pair.sample for pair in pairs)

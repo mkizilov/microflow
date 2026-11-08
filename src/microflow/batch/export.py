@@ -213,7 +213,7 @@ def export_run(
     store.write_text_atomic(output_dir / PROVENANCE, final.model_dump_json(indent=2))
     return ExportResult(
         directory=output_dir,
-        files=tuple(output.path for output in written) + (PROVENANCE,),
+        files=(*(output.path for output in written), PROVENANCE),
         images=tuple(item.name for item in successful),
         rows=table.length,
         result_set_id=identity,

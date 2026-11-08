@@ -2,8 +2,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from click.testing import Result
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from microflow.cli import app
 from microflow.image_io import write_image
@@ -86,9 +85,7 @@ def test_fail_on_flags_exits_with_status_two_and_still_writes_the_report(tmp_pat
     labels = tmp_path / "labels.tif"
     write_image(labels, np.zeros((32, 32), dtype=np.int32))
     output = tmp_path / "report.html"
-    result = _qc(
-        [str(raw), "--labels", str(labels), "--output", str(output), "--fail-on-flags"]
-    )
+    result = _qc([str(raw), "--labels", str(labels), "--output", str(output), "--fail-on-flags"])
     assert result.exit_code == 2
     assert "flag empty_mask" in result.output
     assert output.exists()
@@ -138,8 +135,6 @@ def test_invalid_qc_config_is_reported(tmp_path: Path, phantom_tif: Path) -> Non
 def test_labels_on_a_different_grid_are_refused(tmp_path: Path, phantom_tif: Path) -> None:
     labels = tmp_path / "small.tif"
     write_image(labels, np.zeros((16, 16), dtype=np.int32))
-    result = _qc(
-        [str(phantom_tif), "--labels", str(labels), "--output", str(tmp_path / "r.html")]
-    )
+    result = _qc([str(phantom_tif), "--labels", str(labels), "--output", str(tmp_path / "r.html")])
     assert result.exit_code == 1
     assert "share" in result.output

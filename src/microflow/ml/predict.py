@@ -57,9 +57,7 @@ def _is_device_failure(exc: Exception) -> bool:
     )
 
 
-def _forward(
-    model: UNet, window: NDArray[np.float64], device: torch.device
-) -> NDArray[np.float32]:
+def _forward(model: UNet, window: NDArray[np.float64], device: torch.device) -> NDArray[np.float32]:
     with torch.no_grad():
         tensor = torch.as_tensor(window, dtype=torch.float32, device=device)
         logits: torch.Tensor = model(tensor[None, None])

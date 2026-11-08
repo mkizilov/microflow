@@ -47,9 +47,7 @@ def test_augmentation_is_reproducible_for_a_generator_state() -> None:
 def test_disabled_augmentation_returns_the_input_values() -> None:
     image, mask = _aligned_pair()
     options = AugmentConfig(flip=False, rotate90=False, intensity=0.0, noise_std=0.0)
-    augmented_image, augmented_mask = augment_pair(
-        image, mask, np.random.default_rng(0), options
-    )
+    augmented_image, augmented_mask = augment_pair(image, mask, np.random.default_rng(0), options)
     np.testing.assert_array_equal(augmented_image, image)
     np.testing.assert_array_equal(augmented_mask, mask)
 

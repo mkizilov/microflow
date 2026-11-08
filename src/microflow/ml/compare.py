@@ -107,4 +107,3 @@ def _matched_objects(a: NDArray[np.int64], b: NDArray[np.int64], match_iou: floa
         used_b.add(right)
         matched += 1
     return matched
-

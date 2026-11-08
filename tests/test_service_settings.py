@@ -28,7 +28,7 @@ def test_loopback_addresses_are_recognised() -> None:
 
 def test_remote_bind_is_refused_unless_explicitly_allowed(tmp_path: Path) -> None:
     tree = make_tree(tmp_path)
-    with pytest.raises(ConfigError, match="refusing to listen on 0.0.0.0"):
+    with pytest.raises(ConfigError, match=r"refusing to listen on 0.0.0.0"):
         check_bind("0.0.0.0", allow_remote=False)
     check_bind("0.0.0.0", allow_remote=True)
     with pytest.raises(ValidationError, match="refusing to listen"):

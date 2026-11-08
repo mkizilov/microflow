@@ -4,8 +4,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import tifffile
-from click.testing import Result
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from microflow.cli import app
 from microflow.image_io import write_image

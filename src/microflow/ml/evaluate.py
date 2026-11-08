@@ -49,6 +49,11 @@ def evaluate(config: TrainingConfig, checkpoint_path: Path) -> EvaluationResult:
     prepared = prepare(config)
     checkpoint = load_checkpoint(checkpoint_path)
     _check_matches(checkpoint, config, prepared, checkpoint_path)
+    if checkpoint.get(IDENTITY_KEY) != prepared.identity:
+        raise CheckpointError(
+            f"{checkpoint_path} does not belong to the training run for the current data and "
+            "configuration: an image, a mask or a setting has changed since training"
+        )
 
     out = config.output_directory
     if read_identity(out / RUN_FILE, IDENTITY_KEY) != checkpoint.get(IDENTITY_KEY):

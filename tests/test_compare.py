@@ -142,8 +142,7 @@ def test_cache_status_reports_a_different_analysis_for_every_image(tmp_path: Pat
     assert report.analysis_matches is False
     assert report.directory_analysis == analysis_id(config)
     assert all(
-        not status.reusable and status.reason == "configuration changed"
-        for status in report.images
+        not status.reusable and status.reason == "configuration changed" for status in report.images
     )
 
 

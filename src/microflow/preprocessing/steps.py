@@ -11,8 +11,8 @@ A steps file has the form::
 Steps run in the order listed. Nothing runs unless it is listed.
 """
 
-from pathlib import Path
 import re
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 import yaml

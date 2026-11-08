@@ -14,12 +14,10 @@ class OverlapScores(BaseModel):
     truth_pixels: int
 
 
-def score_segmentation(
-    prediction: npt.ArrayLike, truth: npt.ArrayLike
-) -> OverlapScores:
+def score_segmentation(prediction: npt.ArrayLike, truth: npt.ArrayLike) -> OverlapScores:
     """Foreground Dice and IoU. Any non-zero value counts as foreground, so label images work.
 
-    Dice = 2|A∩B| / (|A|+|B|) and IoU = |A∩B| / |A∪B|. If both masks are empty they agree
+    Dice = 2|A∩B| / (|A|+|B|) and IoU = |A∩B| / |A or B|. If both masks are empty they agree
     perfectly, so both scores are 1.0. If only one is empty, both scores are 0.0.
     """
     predicted_array = np.asarray(prediction)

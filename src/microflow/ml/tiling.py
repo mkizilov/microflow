@@ -32,7 +32,7 @@ def receptive_radius(depth: int) -> int:
     """
     if depth < 1:
         raise ValueError(f"depth must be at least 1; got {depth}")
-    return 8 * 2**depth - 6
+    return int(8 * 2**depth - 6)
 
 
 def pad_to_multiple(image: NDArray[np.float64], multiple: int) -> NDArray[np.float64]:

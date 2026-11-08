@@ -48,7 +48,8 @@ def _square_labels(shape: tuple[int, int] = (100, 100)) -> np.ndarray:
 
 def test_clean_phantom_has_no_flags() -> None:
     image, _ = make_phantom(DISCS, seed=1)
-    labels, _ = segment_plane(image, SegmentationConfig(min_object_area=Area(9, "um")), PIXEL)
+    config = SegmentationConfig(min_object_area=Area(value=9, unit="um"))
+    labels, _ = segment_plane(image, config, PIXEL)
     report = _report(image, labels, calibration=PIXEL)
     assert report.flags == ()
     assert report.planes[0].object_count == 3
@@ -161,7 +162,8 @@ def test_objects_within_the_area_range_are_not_flagged() -> None:
 
 def test_area_limits_need_calibration() -> None:
     settings = QualityControlConfig(min_object_area=Area(value=5, unit="um"))
-    with pytest.raises(ValueError, match="needs pixel calibration"):
+    # The message says "limits need" because its subject is plural.
+    with pytest.raises(ValueError, match="need pixel calibration"):
         _report(np.ones((10, 10)), np.zeros((10, 10), dtype=np.int32), settings)
 
 

@@ -97,7 +97,7 @@ def test_minimum_object_area_is_inclusive(
     labels, _ = segment_plane(
         phantom[0], _config(min_object_area=Area(value=minimum, unit="um")), PIXEL
     )
-    assert (labels[60, 15] != 0) is dot_kept
+    assert bool(labels[60, 15] != 0) is dot_kept
 
 
 def test_segmentation_scores_against_ground_truth(phantom: tuple[np.ndarray, np.ndarray]) -> None:

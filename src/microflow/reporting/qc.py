@@ -245,7 +245,7 @@ def object_areas(
     counts = np.bincount(np.asarray(labels, dtype=np.intp).ravel())
     counts[0] = 0
     ids = np.flatnonzero(counts)
-    return ids, counts[ids] * area_per_pixel
+    return ids, (counts[ids] * area_per_pixel).astype(np.float64)
 
 
 def pixel_area(calibration: Calibration | None) -> float:
@@ -259,13 +259,12 @@ def _planes(image: LoadedImage) -> tuple[npt.NDArray[Any], tuple[str, ...]]:
     lead_axes = [image.axes[index] for index in lead]
     names = tuple(
         "".join(
-            f"{axis}{position}"
-            for axis, position in zip(lead_axes, position_index, strict=True)
+            f"{axis}{position}" for axis, position in zip(lead_axes, position_index, strict=True)
         )
         or "image"
         for position_index in np.ndindex(moved.shape[: len(lead)])
     )
-    return moved.reshape((-1,) + moved.shape[-2:]), names
+    return moved.reshape((-1, *moved.shape[-2:])), names
 
 
 def _area_limits(

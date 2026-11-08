@@ -6,9 +6,10 @@ from pathlib import Path
 import pytest
 
 from microflow.batch import store
-from microflow.batch.records import ItemRecord, OutputFile
+from microflow.batch.records import ItemRecord
 from microflow.batch.store import BatchError
-from microflow.provenance.hashing import digest
+from microflow.provenance.hashing import digest, sha256_file
+from microflow.provenance.record import OutputFile
 
 
 def _valid_item(item_dir: Path, *, fingerprint: str = "f", input_sha: str = "in") -> ItemRecord:
@@ -16,7 +17,7 @@ def _valid_item(item_dir: Path, *, fingerprint: str = "f", input_sha: str = "in"
     (item_dir / "labels.tif").write_bytes(b"labels")
     output = OutputFile(
         path="labels.tif",
-        sha256=store.sha256_file(item_dir / "labels.tif"),
+        sha256=sha256_file(item_dir / "labels.tif"),
         size_bytes=6,
     )
     record = ItemRecord(
@@ -98,7 +99,7 @@ def test_write_output_publishes_only_a_completed_file(tmp_path: Path) -> None:
     assert (tmp_path / "data.bin").read_bytes() == b"complete"
     assert not (tmp_path / "data.bin.partial").exists()
     assert output.size_bytes == 8
-    assert output.sha256 == store.sha256_file(tmp_path / "data.bin")
+    assert output.sha256 == sha256_file(tmp_path / "data.bin")
 
 
 def test_failed_writer_leaves_no_final_file(tmp_path: Path) -> None:

@@ -17,8 +17,9 @@ from microflow.batch.engine import (
     run_batch,
 )
 from microflow.batch.export import ExportError, ExportResult, export_run
-from microflow.batch.records import BatchManifest, ItemRecord, OutputFile, ProgressEvent
+from microflow.batch.records import BatchManifest, ItemRecord, ProgressEvent
 from microflow.batch.store import BatchError
+from microflow.provenance.record import OutputFile
 
 __all__ = [
     "ANALYSIS_SECTIONS",

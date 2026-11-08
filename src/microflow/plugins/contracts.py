@@ -8,20 +8,18 @@ truncated, or dropped.
 import math
 import re
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, TypeVar
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 
 from microflow.plugins.api import FEATURE_NAME_PATTERN, FeatureColumn, PluginError
 
-T = TypeVar("T")
-
 # Columns that identify each row; a feature with one of these names would overwrite them.
 RESERVED_FEATURE_COLUMNS = ("plane", "label")
 
 
-def call(
+def call[T](
     kind: str,
     name: str,
     stage: str,
@@ -55,9 +53,7 @@ def check_image(
     return as_float
 
 
-def check_labels(
-    output: Any, expected_shape: tuple[int, ...], label: str
-) -> npt.NDArray[np.int32]:
+def check_labels(output: Any, expected_shape: tuple[int, ...], label: str) -> npt.NDArray[np.int32]:
     array = np.asarray(output)
     if array.shape != expected_shape:
         raise PluginError(

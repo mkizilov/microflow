@@ -33,12 +33,12 @@ def test_a_single_value_has_a_mean_but_no_standard_deviation() -> None:
 def test_hedges_g_matches_its_closed_form_for_a_small_pair() -> None:
     # Groups [1, 2] and [3, 4]: means 1.5 and 3.5. Each sample variance is 0.5 (ddof 1), so the
     # pooled SD is sqrt(0.5). The small-sample factor is 1 - 3 / (4 * 4 - 9) = 1 - 3/7 = 4/7.
-    # g = (4/7) * (1.5 - 3.5) / sqrt(0.5) = -(8/7) * sqrt(2) = -1.6165.
+    # g = (4/7) * (1.5 - 3.5) / sqrt(0.5) = -(8/7) * sqrt(2) = -1.616244.
     first = np.array([1.0, 2.0])
     second = np.array([3.0, 4.0])
     expected = -(8 / 7) * math.sqrt(2)
     assert hedges_g(first, second) == pytest.approx(expected)
-    assert expected == pytest.approx(-1.6165, abs=1e-4)
+    assert expected == pytest.approx(-1.6162, abs=1e-4)
 
 
 def test_hedges_g_is_the_mean_difference_in_pooled_sd_with_bias_correction() -> None:

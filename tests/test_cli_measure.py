@@ -4,8 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from click.testing import Result
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from microflow.cli import app
 from microflow.image_io import write_image
@@ -138,7 +137,7 @@ def test_require_calibration_refuses_uncalibrated_input(
 def test_labels_must_be_a_single_plane(tmp_path: Path, measure_inputs: tuple[Path, Path]) -> None:
     _, raw_path = measure_inputs
     stack_path = tmp_path / "stack.tif"
-    write_image(stack_path, np.zeros((2, 40, 40), dtype=np.int32))
+    write_image(stack_path, np.zeros((2, 40, 40), dtype=np.int32), axes="ZYX")
     result, _ = _measure(tmp_path, [str(stack_path), "--raw", str(raw_path)])
     assert result.exit_code == 1
     assert "expected YX" in result.output

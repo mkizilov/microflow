@@ -94,10 +94,7 @@ def flat_field_correct(data: Array, axes: str, flat: Array) -> tuple[Array, floa
     gain = flat / mean
     if axes.index("Y") > axes.index("X"):
         gain = gain.T
-    shape = tuple(
-        size if axis in "YX" else 1
-        for axis, size in zip(axes, data.shape, strict=True)
-    )
+    shape = tuple(size if axis in "YX" else 1 for axis, size in zip(axes, data.shape, strict=True))
     return data / gain.reshape(shape), mean
 
 

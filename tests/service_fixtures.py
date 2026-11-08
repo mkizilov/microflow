@@ -66,11 +66,7 @@ def batch_mapping(
     paths = write_images(tree, images)
     mapping: dict[str, Any] = {
         "name": "service-test",
-        "dataset": {
-            "images": [
-                {"name": path.stem, "path": str(path)} for path in paths
-            ]
-        },
+        "dataset": {"images": [{"name": path.stem, "path": str(path)} for path in paths]},
         "output_directory": str(tree.outputs / output),
         "workers": 1,
     }

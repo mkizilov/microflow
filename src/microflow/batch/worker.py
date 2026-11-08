@@ -18,7 +18,7 @@ import numpy as np
 import numpy.typing as npt
 
 from microflow.batch import store
-from microflow.batch.records import ItemRecord, OutputFile
+from microflow.batch.records import ItemRecord
 from microflow.config import QualityControlConfig, SegmentationConfig
 from microflow.image_io import write_image
 from microflow.loading import LoadedImage, load_array, load_image
@@ -32,6 +32,7 @@ from microflow.plugins.contracts import (
 from microflow.plugins.registry import configure
 from microflow.preprocessing import preprocess
 from microflow.preprocessing.steps import Step
+from microflow.provenance.record import OutputFile
 from microflow.quantification import IntensitySource, measure_plane
 from microflow.reporting.figures import render_figures
 from microflow.reporting.html import render_html
@@ -143,7 +144,7 @@ def _run_image(job: ImageJob) -> _Outcome:
     objects = sum(int(labels[index].max()) for index in range(count))
 
     labels_axes = raw_planes.lead_axes + "YX"
-    labels_stack = labels.reshape(raw_planes.lead_shape + (height, width))
+    labels_stack = labels.reshape((*raw_planes.lead_shape, height, width))
     outputs: dict[str, OutputFile] = {
         "labels": store.write_output(
             job.item_dir,
@@ -242,14 +243,13 @@ def _planes(data: npt.ArrayLike, axes: str) -> _Planes:
     inner = ([axes.index("C")] if "C" in axes else []) + [axes.index("Y"), axes.index("X")]
     moved = np.transpose(np.asarray(data), lead + inner)
     lead_shape = tuple(int(size) for size in moved.shape[: len(lead)])
-    stacked = moved.reshape((math.prod(lead_shape),) + moved.shape[len(lead) :])
+    stacked = moved.reshape((math.prod(lead_shape), *moved.shape[len(lead) :]))
     if "C" not in axes:
         stacked = stacked[:, np.newaxis]
     lead_axes = "".join(axes[index] for index in lead)
     names = tuple(
         "".join(
-            f"{axis}{position}"
-            for axis, position in zip(lead_axes, position_index, strict=True)
+            f"{axis}{position}" for axis, position in zip(lead_axes, position_index, strict=True)
         )
         or "image"
         for position_index in np.ndindex(lead_shape)
@@ -258,7 +258,7 @@ def _planes(data: npt.ArrayLike, axes: str) -> _Planes:
 
 
 def _selected_stack(planes: _Planes, channel: int, height: int, width: int) -> npt.NDArray[Any]:
-    return planes.data[:, channel].reshape(planes.lead_shape + (height, width))
+    return planes.data[:, channel].reshape((*planes.lead_shape, height, width))
 
 
 def _write_table(
@@ -365,4 +365,3 @@ def _run_quality_plugins(
                 for text in check_findings(findings, label)
             )
     return messages
-

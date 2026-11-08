@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -7,6 +7,9 @@ name = "microflow"
 version = "0.1.0"
 description = "Scientific image processing and quantitative analysis"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Mykyta Kizilov" }]
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=2.0",
@@ -85,6 +88,26 @@ files = ["src", "tests"]
 [[tool.mypy.overrides]]
 module = ["torch", "torch.*"]
 ignore_missing_imports = true
+
+# SciPy, pyarrow and scikit-image ship no type information in the locked versions, so values from them
+# are Any. These overrides ignore the missing stubs, and relax the two checks that depend on those types
+# in the few modules that call them. The rest of each module stays strictly checked.
+[[tool.mypy.overrides]]
+module = ["scipy", "scipy.*", "pyarrow", "pyarrow.*", "skimage", "skimage.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "microflow.preprocessing.operations",
+    "microflow.segmentation.algorithms",
+    "microflow.segmentation.pipeline",
+    "microflow.quantification.features",
+    "microflow.reporting.figures",
+    "microflow.stats.estimators",
+    "microflow.ml.train",
+]
+warn_return_any = false
+disallow_untyped_calls = false
 
 # The HTTP service's optional extra. Route decorators come from FastAPI, which is untyped when absent.
 [[tool.mypy.overrides]]

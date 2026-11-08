@@ -44,8 +44,7 @@ def _results(root: Path) -> Path:
         encoding="utf-8",
     )
     (results / "comparisons.csv").write_text(
-        COMPARISON_HEADER
-        + "area_um2,um2,control,treated,2,2,6,6,11.0,17.0,-6.0,-8.0,-4.0,"
+        COMPARISON_HEADER + "area_um2,um2,control,treated,2,2,6,6,11.0,17.0,-6.0,-8.0,-4.0,"
         "-3.1,-5.0,-1.0,-1.0,0.0333,0.0333,0.1,0.1,0.02,0.02,exact,\n",
         encoding="utf-8",
     )
@@ -62,15 +61,15 @@ def _qc(root: Path) -> Path:
         json.dumps(
             {
                 "name": "sample",
-                "outputs": {"qc_report": {"path": "qc_report.html", "sha256": "x", "size_bytes": 1}}
+                "outputs": {
+                    "qc_report": {"path": "qc_report.html", "sha256": "x", "size_bytes": 1}
+                },
             }
         ),
         encoding="utf-8",
     )
     manifest = {
-        "items": [
-            {"name": "sample", "status": "ok", "objects": 6, "flags": ["excessive_coverage"]}
-        ]
+        "items": [{"name": "sample", "status": "ok", "objects": 6, "flags": ["excessive_coverage"]}]
     }
     (batch / "batch_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     return batch
@@ -119,9 +118,9 @@ def test_quality_control_links_are_relative_to_the_report(tmp_path: Path) -> Non
     results = _results(tmp_path)
     batch = _qc(tmp_path)
     report_dir = tmp_path / "reports"
-    page = render_study_report(
-        results, report_dir / "report.html", batch_dir=batch
-    ).read_text(encoding="utf-8")
+    page = render_study_report(results, report_dir / "report.html", batch_dir=batch).read_text(
+        encoding="utf-8"
+    )
     assert "<h2>Quality control (per image)</h2>" in page
     assert "../batch/items/sample-1234abcd/qc_report.html" in page
     assert "excessive_coverage" in page

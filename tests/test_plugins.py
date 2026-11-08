@@ -180,7 +180,7 @@ def test_a_class_without_the_required_method_is_refused(plugin_site: Callable[..
         {SEGMENTER_GROUP: {"half-seg": "mf_half:Segmenter"}},
         {"mf_half.py": source},
     )
-    with pytest.raises(PluginError, match="does not implement the segmenter interface.*segment"):
+    with pytest.raises(PluginError, match=r"does not implement the segmenter interface.*segment"):
         load("segmenter", "half-seg")
 
 
@@ -293,7 +293,7 @@ def test_configure_reports_invalid_options_with_their_field(
     with pytest.raises(PluginError, match="invalid options: bogus:"):
         configure("segmenter", PluginSpec(name="opt-seg", options={"bogus": 1}))
     configured = configure("segmenter", PluginSpec(name="opt-seg", options={"level": 0.25}))
-    assert configured.options.level == 0.25
+    assert configured.options.model_dump() == {"level": 0.25}
     assert configured.version == "2.0"
 
 
@@ -418,5 +418,5 @@ def test_plugin_exceptions_are_named_and_interrupts_are_not_swallowed() -> None:
     def inner() -> None:
         raise PluginError("already explained")
 
-    with pytest.raises(PluginError, match="^already explained$"):
+    with pytest.raises(PluginError, match=r"^already explained$"):
         call("qc", "w", "check", inner)

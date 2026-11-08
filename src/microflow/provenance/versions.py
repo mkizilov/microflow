@@ -17,7 +17,8 @@ ALGORITHM_VERSIONS: dict[str, str] = {
 COMPUTATIONAL_LIBRARIES = ("numpy", "scipy", "scikit-image", "tifffile")
 
 # Every library recorded in a provenance record.
-REPORTED_LIBRARIES = COMPUTATIONAL_LIBRARIES + (
+REPORTED_LIBRARIES = (
+    *COMPUTATIONAL_LIBRARIES,
     "matplotlib",
     "pyarrow",
     "pydantic",

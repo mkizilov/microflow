@@ -8,14 +8,21 @@ analysis.
 
 import math
 from pathlib import Path
+from typing import Any
 
 import pytest
 from scipy import stats
 
 from microflow.stats.analysis import ComparisonRow, DescriptiveRow, run_analysis
 from microflow.stats.data import ObjectTable, read_measurements
-from microflow.stats.design import StatsDesign
-from stats_fixtures import AREAS, design_mapping, write_dictionary, write_measurements
+from microflow.stats.design import StatsDesign, load_design
+from stats_fixtures import (
+    AREAS,
+    design_mapping,
+    write_design,
+    write_dictionary,
+    write_measurements,
+)
 
 
 def _study(
@@ -23,14 +30,16 @@ def _study(
     areas: dict[str, list[float]] = AREAS,
     *,
     measures: list[str] | None = None,
-    **overrides: object,
+    **overrides: Any,
 ) -> tuple[StatsDesign, ObjectTable]:
     write_measurements(tmp_path, areas)
     write_dictionary(tmp_path)
     mapping = design_mapping(tmp_path, **overrides)
     if measures is not None:
         mapping["measures"] = measures
-    design = StatsDesign.model_validate(mapping)
+    # Load through the design loader, which resolves relative paths against the design file, as the
+    # CLI does. Building the model directly would leave the paths relative to the working directory.
+    design = load_design(write_design(tmp_path, mapping))
     table = read_measurements(
         design.measurements, measures=design.measures, dictionary=design.data_dictionary
     )
@@ -41,7 +50,7 @@ def _descriptive(rows: tuple[DescriptiveRow, ...], group: str) -> DescriptiveRow
     return next(row for row in rows if row.group == group)
 
 
-def _comparison(tmp_path: Path, **overrides: object) -> ComparisonRow:
+def _comparison(tmp_path: Path, **overrides: Any) -> ComparisonRow:
     design, table = _study(tmp_path, **overrides)
     return run_analysis(design, table).comparisons[0]
 

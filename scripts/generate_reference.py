@@ -120,6 +120,7 @@ def _commands(path: Path, group: str | None, apps: dict[str, str]) -> list[Comma
                     if node.args.defaults
                     else [],
                     node.args.defaults,
+                    strict=True,
                 )
             )
             for arg in node.args.args:
@@ -256,6 +257,7 @@ def http_reference() -> str:
                     if node.args.defaults
                     else [],
                     node.args.defaults,
+                    strict=True,
                 )
             )
             for arg in node.args.args:
@@ -302,7 +304,7 @@ def http_reference() -> str:
     lines += [f"| `{code}` | {status} |" for code, status in sorted(codes.items())]
     lines += [
         "",
-        "Every error has the body `{\"error\": {\"code\", \"message\", \"details\"}}`. A job that "
+        'Every error has the body `{"error": {"code", "message", "details"}}`. A job that '
         "ends `failed` carries one of the job error codes instead: `invalid_config`, "
         "`not_found`, `path_not_allowed`, `batch_refused`, `io_error`, `internal` or "
         "`interrupted`.",
@@ -318,7 +320,7 @@ def _error_codes() -> dict[str, int]:
             if node.target.id == "STATUS_BY_CODE" and isinstance(node.value, ast.Dict):
                 return {
                     str(key.value): int(value.value)
-                    for key, value in zip(node.value.keys, node.value.values)
+                    for key, value in zip(node.value.keys, node.value.values, strict=True)
                     if isinstance(key, ast.Constant) and isinstance(value, ast.Constant)
                 }
     raise SystemExit("STATUS_BY_CODE not found in errors.py")

@@ -223,9 +223,8 @@ def test_progress_is_recorded_while_a_job_runs(tmp_path: Path) -> None:
     try:
         job = h.submit()
         wait_for(lambda: h.status(job) == "running")
-        wait_for(lambda: h.manager.get(job.id).progress is not None)
-        progress = h.store.get(job.id)
-        assert progress is not None
+        wait_for(lambda: h.manager.get(job.id).progress_completed is not None)
+        progress = h.manager.get(job.id)
         assert (progress.progress_completed, progress.progress_total) == (1, 2)
     finally:
         h.runner.release()

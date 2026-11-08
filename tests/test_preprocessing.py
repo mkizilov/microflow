@@ -20,6 +20,7 @@ from microflow.preprocessing.steps import (
     MaskArtifacts,
     MedianFilter,
     Normalize,
+    Step,
     SubtractBackground,
     SubtractConstant,
     load_steps,
@@ -173,7 +174,7 @@ def test_median_nan_path_removes_spikes_and_keeps_nan() -> None:
 
 def test_channels_are_filtered_independently() -> None:
     data = np.stack([np.full((10, 10), 10.0), np.full((10, 10), 500.0)])
-    steps = [
+    steps: list[Step] = [
         GaussianFilter(kind="gaussian", sigma=Length(value=1.0, unit="um")),
         MedianFilter(kind="median", radius=Length(value=1.0, unit="um")),
     ]
@@ -307,7 +308,7 @@ def test_sigma_in_nanometres_converts_to_pixels() -> None:
 
 
 def test_provenance_lists_stages_in_order_with_parameters() -> None:
-    steps = [
+    steps: list[Step] = [
         SubtractConstant(kind="subtract_constant", value=10.0),
         GaussianFilter(kind="gaussian", sigma=Length(value=1.0, unit="um")),
         Normalize(kind="normalize"),
@@ -329,8 +330,13 @@ def test_provenance_lists_stages_in_order_with_parameters() -> None:
 
 
 def test_stage_order_is_respected() -> None:
-    data = np.full((8, 8), 10.0)
-    steps = [SubtractConstant(kind="subtract_constant", value=4.0), Normalize(kind="normalize")]
+    # A flat image has no intensity range, so normalisation correctly refuses it. This image spans a
+    # range, and subtracting first leaves a range to normalise.
+    data = np.arange(64, dtype=np.float64).reshape(8, 8) + 10.0
+    steps: list[Step] = [
+        SubtractConstant(kind="subtract_constant", value=4.0),
+        Normalize(kind="normalize"),
+    ]
     subtract_then_normalize = preprocess(_image(data), steps)
     assert [record.stage for record in subtract_then_normalize.records][1:3] == [
         "subtract_constant",

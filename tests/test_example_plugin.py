@@ -34,7 +34,8 @@ EXPECTED_NAMES = {
 
 def _declared_entry_points() -> dict[str, dict[str, str]]:
     data = tomllib.loads((EXAMPLE / "pyproject.toml").read_text(encoding="utf-8"))
-    return data["project"]["entry-points"]
+    entry_points: dict[str, dict[str, str]] = data["project"]["entry-points"]
+    return entry_points
 
 
 def _purge_modules_under(root: Path) -> None:
@@ -207,9 +208,7 @@ def test_example_quality_check_warns_only_when_small_objects_dominate(
     assert check_findings(sparse_findings, "qc") == ()
 
 
-def test_example_plugins_run_through_a_batch(
-    example_installed: None, tmp_path: Path
-) -> None:
+def test_example_plugins_run_through_a_batch(example_installed: None, tmp_path: Path) -> None:
     pixels = np.full((40, 40), 100, dtype=np.uint16)
     pixels[5:11, 5:11] = 2000
     pixels[25:29, 25:29] = 3000

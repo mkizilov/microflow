@@ -26,7 +26,7 @@ from microflow.stats.design import StatsDesign
 PALETTE = ("#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#F0E442", "#000000")
 MAX_BACKGROUND_POINTS = 400
 JITTER_WIDTH = 0.22
-STYLE: dict[str, Any] = {
+STYLE: dict[Any, Any] = {
     "font.size": 8,
     "axes.titlesize": 8,
     "axes.labelsize": 8,
@@ -60,15 +60,16 @@ def write_plots(
         unit = table.units.get(measure, "")
         sample_points = {
             group: np.asarray(
-                [row.value for row in result.samples
-                 if row.measure == measure and row.group == group and row.included],
+                [
+                    row.value
+                    for row in result.samples
+                    if row.measure == measure and row.group == group and row.included
+                ],
                 dtype=np.float64,
             )
             for group in groups
         }
-        object_points = {
-            group: group_objects(table, design, measure, group) for group in groups
-        }
+        object_points = {group: group_objects(table, design, measure, group) for group in groups}
         means = {row.group: row for row in result.descriptive if row.measure == measure}
         figure = render_measure(
             measure=measure,
@@ -145,8 +146,10 @@ def render_measure(
                 )
             else:
                 axis.plot([position], [row.sample_mean], marker="_", color="black", markersize=10)
-        labels = [f"{group}\n(n = {descriptive[group].samples})" if group in descriptive else group
-                  for group in groups]
+        labels = [
+            f"{group}\n(n = {descriptive[group].samples})" if group in descriptive else group
+            for group in groups
+        ]
         axis.set_xticks(range(len(groups)), labels=labels)
         axis.set_xlim(-0.6, len(groups) - 0.4)
         axis.set_ylabel(f"{measure} ({unit})" if unit else measure)
@@ -182,9 +185,7 @@ def render_effect_sizes(comparisons: Sequence[ComparisonRow], *, confidence: flo
         axis.axvline(0, color="0.5", linewidth=0.8, linestyle="--")
         axis.set_yticks(
             positions,
-            labels=[
-                f"{row.measure}\n{row.group_a} vs {row.group_b}" for row in comparisons
-            ],
+            labels=[f"{row.measure}\n{row.group_a} vs {row.group_b}" for row in comparisons],
         )
         axis.set_xlabel(f"Hedges' g (mean of group a minus group b; {confidence:.0%} bootstrap CI)")
         axis.set_ylim(-0.7, len(comparisons) - 0.3)

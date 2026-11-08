@@ -133,8 +133,21 @@ def test_ml_segment_writes_the_classical_contract_and_a_report(
     ml_out = ml_dir / "labels.tif"
     ml_run = runner.invoke(
         app,
-        ["ml", "segment", str(checkpoint), str(record.image), "--output", str(ml_out),
-         "--tile-size", "32", "--overlap", "8", *CALIBRATION, "--reference", str(record.mask)],
+        [
+            "ml",
+            "segment",
+            str(checkpoint),
+            str(record.image),
+            "--output",
+            str(ml_out),
+            "--tile-size",
+            "32",
+            "--overlap",
+            "8",
+            *CALIBRATION,
+            "--reference",
+            str(record.mask),
+        ],
     )
     assert ml_run.exit_code == 0, ml_run.output
 
@@ -143,8 +156,15 @@ def test_ml_segment_writes_the_classical_contract_and_a_report(
     classical_out = classical_dir / "labels.tif"
     classical_run = runner.invoke(
         app,
-        ["segment", str(record.image), "--output", str(classical_out), *CALIBRATION,
-         "--reference", str(record.mask)],
+        [
+            "segment",
+            str(record.image),
+            "--output",
+            str(classical_out),
+            *CALIBRATION,
+            "--reference",
+            str(record.mask),
+        ],
     )
     assert classical_run.exit_code == 0, classical_run.output
 

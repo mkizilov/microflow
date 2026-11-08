@@ -14,8 +14,11 @@ INTEGER_AND_FLOAT_DTYPES = [np.uint8, np.uint16, np.uint32, np.int16, np.float32
 def _sample(dtype: type[np.generic]) -> np.ndarray:
     rng = np.random.default_rng(0)
     if np.issubdtype(dtype, np.integer):
-        info = np.iinfo(dtype)
-        return rng.integers(info.min, info.max, size=(6, 7), dtype=dtype, endpoint=True)
+        info = np.iinfo(np.dtype(dtype))
+        values: np.ndarray = rng.integers(
+            info.min, info.max, size=(6, 7), dtype=dtype, endpoint=True
+        )
+        return values
     return rng.normal(size=(6, 7)).astype(dtype)
 
 
@@ -252,7 +255,7 @@ def test_missing_file_is_rejected(tmp_path: Path) -> None:
 
 
 def test_unsupported_suffix_is_rejected(tmp_path: Path) -> None:
-    with pytest.raises(ImageLoadError, match="unsupported image format '.png'"):
+    with pytest.raises(ImageLoadError, match=r"unsupported image format '.png'"):
         load_image(tmp_path / "picture.png")
 
 
@@ -273,7 +276,7 @@ OME_TEMPLATE = (
     '<?xml version="1.0"?>'
     '<OME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06">'
     '<Image ID="Image:0"><Pixels ID="Pixels:0" DimensionOrder="XYCZT" SizeC="2" '
-    '{pixel_attributes}>'
+    "{pixel_attributes}>"
     '<TiffData><UUID FileName="{filename}">urn:uuid:0</UUID></TiffData>'
     '<Channel ID="Channel:0:0" Name="DAPI"/>'
     '<Channel ID="Channel:0:1" Name="GFP"/>'
@@ -298,8 +301,7 @@ def test_ome_default_unit_is_micrometre() -> None:
 )
 def test_ome_units_are_mapped(unit: str, expected: str) -> None:
     attributes = (
-        f'PhysicalSizeX="2" PhysicalSizeXUnit="{unit}" '
-        f'PhysicalSizeY="2" PhysicalSizeYUnit="{unit}"'
+        f'PhysicalSizeX="2" PhysicalSizeXUnit="{unit}" PhysicalSizeY="2" PhysicalSizeYUnit="{unit}"'
     )
     calibration, _ = parse_ome_pixels(_ome(attributes), 0, "img.ome.tif")
     assert calibration == Calibration(pixel_size=2.0, unit=expected)  # type: ignore[arg-type]
@@ -321,15 +323,16 @@ def test_ome_anisotropic_pixels_are_rejected() -> None:
 
 
 def test_ome_unsupported_unit_is_rejected() -> None:
-    attributes = 'PhysicalSizeX="1" PhysicalSizeXUnit="pixel" PhysicalSizeY="1"'
+    # Both axes use the unsupported unit, so the unit check (not the mixed-units check) fires.
+    attributes = (
+        'PhysicalSizeX="1" PhysicalSizeXUnit="pixel" PhysicalSizeY="1" PhysicalSizeYUnit="pixel"'
+    )
     with pytest.raises(ImageLoadError, match="unsupported physical unit 'pixel'"):
         parse_ome_pixels(_ome(attributes), 0, "img.ome.tif")
 
 
 def test_ome_mixed_units_are_rejected() -> None:
-    attributes = (
-        'PhysicalSizeX="1" PhysicalSizeXUnit="um" PhysicalSizeY="1" PhysicalSizeYUnit="nm"'
-    )
+    attributes = 'PhysicalSizeX="1" PhysicalSizeXUnit="um" PhysicalSizeY="1" PhysicalSizeYUnit="nm"'
     with pytest.raises(ImageLoadError, match="different units"):
         parse_ome_pixels(_ome(attributes), 0, "img.ome.tif")
 

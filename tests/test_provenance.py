@@ -151,7 +151,7 @@ def test_record_carries_every_provenance_field() -> None:
 def test_manifest_provenance_is_complete_and_matches_the_inputs(
     batch_run: tuple[BatchConfig, BatchManifest, list[Path]],
 ) -> None:
-    config, manifest, paths = batch_run
+    config, manifest, _paths = batch_run
     record = manifest.provenance
 
     assert record.microflow_version == __version__
@@ -193,9 +193,7 @@ def test_run_directory_records_the_analysis_it_belongs_to(
     batch_run: tuple[BatchConfig, BatchManifest, list[Path]],
 ) -> None:
     config, manifest, _ = batch_run
-    recorded = json.loads(
-        (config.output_directory / ANALYSIS_FILE).read_text(encoding="utf-8")
-    )
+    recorded = json.loads((config.output_directory / ANALYSIS_FILE).read_text(encoding="utf-8"))
     assert recorded["analysis_id"] == manifest.provenance.analysis_id
     assert recorded["microflow_version"] == __version__
 

@@ -10,7 +10,7 @@ Two identities are used:
 """
 
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -63,7 +63,7 @@ class ProvenanceRecord(BaseModel):
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def analysis_identity(analysis: dict[str, Any]) -> str:

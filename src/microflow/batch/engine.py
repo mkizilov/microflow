@@ -43,14 +43,14 @@ from pydantic import BaseModel, ConfigDict
 from microflow import __version__
 from microflow.batch import store
 from microflow.batch.config import BatchConfig
-from microflow.batch.records import BatchManifest, ItemRecord, ProgressEvent
+from microflow.batch.records import BatchManifest, ItemRecord, ProgressEvent, RunStatus
 from microflow.batch.store import BatchError
 from microflow.batch.worker import ImageJob, process_image
 from microflow.image_io import read_shape_and_dtype
 from microflow.plugins.api import PluginSpec
 from microflow.plugins.registry import configure
 from microflow.provenance.guard import OutputConflictError, prepare_directory, read_identity
-from microflow.provenance.hashing import digest
+from microflow.provenance.hashing import digest, sha256_file
 from microflow.provenance.record import InputFile, analysis_identity, make_record, utc_now
 
 BATCH_SCHEMA_VERSION = 2
@@ -107,8 +107,8 @@ class _Slot:
 class _InlineExecutor(Executor):
     """Runs each submission in the calling process. Used for one worker and for tests."""
 
-    def submit(self, fn, /, *args, **kwargs) -> Future:  # type: ignore[override]
-        future: Future = Future()
+    def submit[T](self, fn: Callable[..., T], /, *args: Any, **kwargs: Any) -> Future[T]:
+        future: Future[T] = Future()
         try:
             future.set_result(fn(*args, **kwargs))
         except Exception as exc:
@@ -151,15 +151,13 @@ def inspect_cache(config: BatchConfig) -> CacheReport:
     for image in config.dataset.images:
         item_dir = run_dir / store.ITEMS_DIR / store.item_directory_name(image.name)
         try:
-            input_sha = store.sha256_file(image.path)
+            input_sha = sha256_file(image.path)
         except OSError as exc:
             statuses.append(
                 CacheStatus(name=image.name, reusable=False, reason=f"cannot read input: {exc}")
             )
             continue
-        cached, reason = store.check_cache(
-            item_dir, input_sha, _item_fingerprint(current, image)
-        )
+        cached, reason = store.check_cache(item_dir, input_sha, _item_fingerprint(current, image))
         statuses.append(
             CacheStatus(
                 name=image.name,
@@ -217,9 +215,7 @@ def run_batch(
         try:
             return _execute(config, run_dir, worker_count, progress, cancel, shared, started)
         except BaseException as exc:
-            _write_run_state(
-                run_dir, {"state": "aborted", "error": f"{type(exc).__name__}: {exc}"}
-            )
+            _write_run_state(run_dir, {"state": "aborted", "error": f"{type(exc).__name__}: {exc}"})
             raise
 
 
@@ -251,14 +247,16 @@ def _execute(
                 cancelled = True
             while not cancelled and queue and len(in_flight) < worker_count:
                 head = queue[0]
+                job = head.job
+                assert job is not None  # queued slots always carry a job
                 if in_flight and budget is not None and reserved + head.estimated_mb > budget:
                     break
                 queue.popleft()
                 try:
-                    future = executor.submit(process_image, head.job)
+                    future = executor.submit(process_image, job)
                 except BrokenProcessPool:
                     executor = _replace(executor, worker_count)
-                    future = executor.submit(process_image, head.job)
+                    future = executor.submit(process_image, job)
                 in_flight[future] = head
                 reserved += head.estimated_mb
                 peak = max(peak, reserved)
@@ -296,14 +294,10 @@ def _execute(
 
 
 def _analysis_settings(config: BatchConfig) -> dict[str, Any]:
-    segmentation_exclude: set[str] = (
-        set() if config.segmentation.plugin is not None else {"plugin"}
-    )
+    segmentation_exclude: set[str] = set() if config.segmentation.plugin is not None else {"plugin"}
     settings: dict[str, Any] = {
         "preprocessing": [step.model_dump(mode="json") for step in config.preprocessing],
-        "segmentation": config.segmentation.model_dump(
-            mode="json", exclude=segmentation_exclude
-        ),
+        "segmentation": config.segmentation.model_dump(mode="json", exclude=segmentation_exclude),
         "segmentation_channel": config.segmentation_channel,
         "quality_control": config.quality_control.model_dump(mode="json"),
     }
@@ -357,7 +351,7 @@ def _plan(config: BatchConfig, run_dir: Path, shared: str) -> list[_Slot]:
         item_dir = run_dir / store.ITEMS_DIR / store.item_directory_name(image.name)
         fingerprint = _item_fingerprint(shared, image)
         try:
-            input_sha = store.sha256_file(image.path)
+            input_sha = sha256_file(image.path)
         except OSError as exc:
             error = f"cannot read input: {exc}"
             slots.append(_failed_slot(index, image.name, item_dir, error, None, fingerprint))
@@ -389,8 +383,7 @@ def _plan(config: BatchConfig, run_dir: Path, shared: str) -> list[_Slot]:
                     index,
                     image.name,
                     item_dir,
-                    f"exceeds memory budget: estimated {estimated:.2f} MB, "
-                    f"budget {budget:.2f} MB",
+                    f"exceeds memory budget: estimated {estimated:.2f} MB, budget {budget:.2f} MB",
                     input_sha,
                     fingerprint,
                     estimated,
@@ -486,7 +479,7 @@ def _publish(
         "resumed": sum(item.resumed for item in items),
     }
     if counts["cancelled"]:
-        status = "cancelled"
+        status: RunStatus = "cancelled"
     elif counts["ok"] == len(items):
         status = "complete"
     else:

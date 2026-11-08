@@ -5,7 +5,7 @@ Unknown keys are rejected so that misspelled options fail loudly instead of bein
 """
 
 from pathlib import Path
-from typing import Annotated, Any, Literal, TypeVar
+from typing import Annotated, Any, Literal
 
 import yaml
 from pydantic import (
@@ -131,9 +131,7 @@ class SegmentationConfig(BaseModel):
                 raise ValueError("plugin is required when method is 'plugin'")
             built_in = _BUILT_IN_SEGMENTATION_OPTIONS & self.model_fields_set
             if built_in:
-                raise ValueError(
-                    f"{', '.join(sorted(built_in))} not used when method is 'plugin'"
-                )
+                raise ValueError(f"{', '.join(sorted(built_in))} not used when method is 'plugin'")
         elif self.plugin is not None:
             raise ValueError("plugin is only used when method is 'plugin'")
         return self
@@ -223,10 +221,7 @@ def _read_yaml(path: Path) -> Any:
         raise ConfigError(f"{path}: invalid YAML: {exc}") from exc
 
 
-_Section = TypeVar("_Section", bound=BaseModel)
-
-
-def _load_section(path: Path, model: type[_Section]) -> _Section:
+def _load_section[Section: BaseModel](path: Path, model: type[Section]) -> Section:
     """Validate a YAML mapping as one settings model. An empty file means the defaults."""
     raw = _read_yaml(path)
     if raw is None:

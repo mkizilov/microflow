@@ -77,9 +77,7 @@ def test_repeated_runs_of_one_configuration_produce_identical_results(tmp_path: 
     second = run_batch(_config(tmp_path / "b", images))
     assert first.status == second.status == "complete"
     assert _comparable(first) == _comparable(second)
-    _assert_same_item_outputs(
-        tmp_path / "a" / "out", tmp_path / "b" / "out", ["img_1", "img_2"]
-    )
+    _assert_same_item_outputs(tmp_path / "a" / "out", tmp_path / "b" / "out", ["img_1", "img_2"])
 
 
 def test_resumed_run_reproduces_the_outputs_of_an_uninterrupted_run(tmp_path: Path) -> None:

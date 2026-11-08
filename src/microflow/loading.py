@@ -53,6 +53,10 @@ class LoadedImage:
     def shape(self) -> tuple[int, ...]:
         return tuple(self.data.shape)
 
+    @property
+    def dtype(self) -> np.dtype[Any]:
+        return self.data.dtype
+
     def axis_size(self, axis: str) -> int:
         return self.shape[self.axes.index(axis)]
 
@@ -114,8 +118,7 @@ def parse_ome_pixels(
     pixels = [element for element in root.iter() if _local_name(element) == "Pixels"]
     if index >= len(pixels):
         raise ImageLoadError(
-            f"{filename}: series {index} has no matching OME Pixels element "
-            f"({len(pixels)} present)"
+            f"{filename}: series {index} has no matching OME Pixels element ({len(pixels)} present)"
         )
     selected = pixels[index]
     for element in selected.iter():
@@ -141,10 +144,9 @@ def _load_tiff(
             selected = tif.series[index]
             file_axes = selected.axes
             shape = tuple(selected.shape)
-            if tif.is_ome:
-                file_calibration, channels = parse_ome_pixels(
-                    tif.ome_metadata, index, path.name
-                )
+            ome_xml = tif.ome_metadata if tif.is_ome else None
+            if ome_xml is not None:
+                file_calibration, channels = parse_ome_pixels(ome_xml, index, path.name)
             else:
                 file_calibration = _resolution_calibration(selected.pages[0], path)
                 channels = None
@@ -213,7 +215,7 @@ def _read_pixels(
 ) -> tuple[npt.NDArray[Any], Literal["memory", "memmap"]]:
     if lazy:
         try:
-            data = tifffile.memmap(path, series=index)
+            data: npt.NDArray[Any] = tifffile.memmap(path, series=index)
         except ValueError:
             # Compressed or otherwise non-contiguous data cannot be memory-mapped.
             data = tifffile.imread(path, series=index)

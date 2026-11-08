@@ -76,7 +76,7 @@ def test_unsupported_architectures_are_refused(architecture: dict[str, Any]) -> 
     ],
 )
 def test_normalization_must_be_usable(normalization: dict[str, Any]) -> None:
-    with pytest.raises(ModelCompatibilityError, match="normalization|finite|positive"):
+    with pytest.raises(ModelCompatibilityError, match=r"normalization|finite|positive"):
         _accept(_metadata(normalization=normalization))
 
 

@@ -82,8 +82,10 @@ def bootstrap_hedges_interval(
     draws_b = second[rng.integers(0, second.size, size=(resamples, second.size))]
     with np.errstate(divide="ignore", invalid="ignore"):
         pooled = np.sqrt(
-            ((first.size - 1) * draws_a.var(axis=1, ddof=1)
-             + (second.size - 1) * draws_b.var(axis=1, ddof=1))
+            (
+                (first.size - 1) * draws_a.var(axis=1, ddof=1)
+                + (second.size - 1) * draws_b.var(axis=1, ddof=1)
+            )
             / (first.size + second.size - 2)
         )
         g = scale * (draws_a.mean(axis=1) - draws_b.mean(axis=1)) / pooled

@@ -22,7 +22,7 @@ from microflow.units import Area, Calibration
 
 MODULE = "mf_integration"
 
-INTEGRATION_MODULE = '''
+INTEGRATION_MODULE = """
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
@@ -132,7 +132,7 @@ class WarningQc(_Base):
 
     def check(self, labels, plane, calibration, options):
         return ["check ran"]
-'''
+"""
 
 
 @pytest.fixture
@@ -163,12 +163,14 @@ CALIBRATION = Calibration(pixel_size=1.0, unit="um")
 
 
 def _image(root: Path, name: str, *, saturate: bool) -> dict[str, Any]:
-    """Two bright blocks on a dim background. ``saturate`` adds one pixel at 60000."""
+    """Two bright blocks on a dim background. ``saturate`` makes the second block saturated.
+
+    A single saturated pixel is not used: it moves Otsu's threshold above the second block, so the
+    image would have no objects and the feature plugin would never run on it.
+    """
     pixels = np.full((40, 40), 100, dtype=np.uint16)
     pixels[5:11, 5:11] = 2000
-    pixels[25:29, 25:29] = 3000
-    if saturate:
-        pixels[0, 0] = 60000
+    pixels[25:29, 25:29] = 60000 if saturate else 3000
     path = root / "data" / f"{name}.tif"
     path.parent.mkdir(parents=True, exist_ok=True)
     write_image(path, pixels)
@@ -249,7 +251,7 @@ def test_preprocessor_plugin_cannot_alter_the_input_image(installed: None) -> No
 def test_preprocessor_output_with_infinite_values_is_refused(installed: None) -> None:
     image = load_array(np.ones((4, 4), dtype=np.float64), axes="YX")
     step = PluginStep.model_validate({"kind": "plugin", "plugin": "inf-pre"})
-    with pytest.raises(PluginError, match="preprocessor plugin 'inf-pre'.*infinite values"):
+    with pytest.raises(PluginError, match=r"preprocessor plugin 'inf-pre'.*infinite values"):
         preprocess(image, [step])
 
 
@@ -298,9 +300,10 @@ def test_failing_feature_plugin_fails_only_its_image_and_publishes_nothing_for_i
     assert manifest.status == "completed_with_failures"
     assert items["good"].status == "ok"
     assert items["bad"].status == "failed"
+    error = items["bad"].error
+    assert error is not None
     assert (
-        "feature plugin 'bad-feature' failed during measure: RuntimeError: saturated plane"
-        in items["bad"].error
+        "feature plugin 'bad-feature' failed during measure: RuntimeError: saturated plane" in error
     )
 
     bad_dir = _item_dir(config, "bad")

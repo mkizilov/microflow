@@ -7,7 +7,7 @@ hint without it.
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, NoReturn
+from typing import TYPE_CHECKING, Annotated, NoReturn, cast, get_args
 
 import numpy as np
 import typer
@@ -27,7 +27,15 @@ from microflow.ml.synthetic import make_synthetic_dataset
 from microflow.provenance.guard import OutputConflictError
 from microflow.provenance.hashing import sha256_file
 from microflow.segmentation.metrics import score_segmentation
-from microflow.units import Area, Calibration, area_to_pixels
+from microflow.units import Area, Calibration, LengthUnit, area_to_pixels
+
+
+def _length_unit(text: str) -> LengthUnit:
+    units: tuple[str, ...] = get_args(LengthUnit)
+    if text not in units:
+        raise typer.BadParameter(f"unit must be one of {', '.join(units)}; got {text!r}")
+    return cast(LengthUnit, text)
+
 
 if TYPE_CHECKING:
     from microflow.ml.train import EpochRecord
@@ -242,10 +250,11 @@ def segment_command(
             threshold=threshold,
             fallback_to_cpu=fallback_to_cpu,
         )
+        min_unit = _length_unit(area_unit)
         min_area_px = (
             0.0
             if min_area == 0
-            else area_to_pixels(Area(value=min_area, unit=area_unit), image.calibration)
+            else area_to_pixels(Area(value=min_area, unit=min_unit), image.calibration)
         )
         calibration = _calibration_tuple(image.calibration)
         labels, results = segment_stack(
@@ -358,9 +367,7 @@ def compare_command(
                 f"the label images differ: {first.axes} {first.shape} and "
                 f"{second.axes} {second.shape}"
             )
-        comparison = compare_label_stacks(
-            first.data, second.data, first.axes, match_iou=match_iou
-        )
+        comparison = compare_label_stacks(first.data, second.data, first.axes, match_iou=match_iou)
     except _FAILURES as exc:
         _fail(exc)
     typer.echo(f"Dice {comparison.dice:.4f}  IoU {comparison.iou:.4f}")

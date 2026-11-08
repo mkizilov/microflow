@@ -312,7 +312,7 @@ def test_run_without_a_manifest_cannot_be_exported(tmp_path: Path) -> None:
     run_dir = tmp_path / "unfinished"
     run_dir.mkdir()
     (run_dir / RUN_FILE).write_text(json.dumps({"state": "aborted"}), encoding="utf-8")
-    with pytest.raises(ExportError, match="has no batch_manifest.json"):
+    with pytest.raises(ExportError, match=r"has no batch_manifest.json"):
         export_run(run_dir, tmp_path / "exp")
 
 

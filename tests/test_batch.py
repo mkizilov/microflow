@@ -341,9 +341,7 @@ def test_stale_partial_files_are_removed_and_a_fake_success_is_not_trusted(
     assert not list(config.output_directory.rglob("*.partial"))
 
 
-def test_live_lock_refuses_a_second_run(
-    tmp_path: Path, three_images: list[dict[str, Any]]
-) -> None:
+def test_live_lock_refuses_a_second_run(tmp_path: Path, three_images: list[dict[str, Any]]) -> None:
     config = _config(tmp_path, three_images[:1])
     config.output_directory.mkdir(parents=True)
     lock = config.output_directory / LOCK_FILE

@@ -53,7 +53,7 @@ def test_image_defaults_to_yx_axes_without_channels() -> None:
 
 
 def test_unknown_keys_are_rejected() -> None:
-    with pytest.raises(ValidationError, match="processing.smoothing_sgima"):
+    with pytest.raises(ValidationError, match=r"processing.smoothing_sgima"):
         MicroFlowConfig.model_validate(
             _config(processing={"smoothing_sgima": {"value": 1.0, "unit": "um"}})
         )

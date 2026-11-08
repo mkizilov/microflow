@@ -102,8 +102,13 @@ def _labels_png(labels: npt.NDArray[Any]) -> bytes:
             continue
         rows, cols = np.nonzero(labels == value)
         axes.text(
-            cols.mean(), rows.mean(), str(int(value)),
-            color="white", fontsize=7, ha="center", va="center",
+            cols.mean(),
+            rows.mean(),
+            str(int(value)),
+            color="white",
+            fontsize=7,
+            ha="center",
+            va="center",
         )
     axes.set_title(FIGURE_TITLES["labels"])
     axes.set_axis_off()

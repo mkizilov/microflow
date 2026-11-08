@@ -31,6 +31,19 @@ class Length(BaseModel):
         return Length(value=self.value * factor, unit=unit)
 
 
+class Area(BaseModel):
+    """A physical area, expressed as the square of a length unit (for example µm²)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    value: NonNegativeFloat
+    unit: LengthUnit
+
+    def to(self, unit: LengthUnit) -> "Area":
+        factor = (_NANOMETRES_PER_UNIT[self.unit] / _NANOMETRES_PER_UNIT[unit]) ** 2
+        return Area(value=self.value * factor, unit=unit)
+
+
 def _require_calibration(calibration: Calibration | None, quantity: str) -> Calibration:
     if calibration is None:
         raise ValueError(
@@ -48,9 +61,7 @@ def to_pixels(length: Length, calibration: Calibration | None) -> float:
     """
     if length.value == 0:
         return 0.0
-    calibration = _require_calibration(
-        calibration, f"a length of {length.value} {length.unit}"
-    )
+    calibration = _require_calibration(calibration, f"a length of {length.value} {length.unit}")
     return length.to(calibration.unit).value / calibration.pixel_size
 
 
@@ -63,16 +74,3 @@ def area_to_pixels(area: Area, calibration: Calibration | None) -> float:
         return 0.0
     calibration = _require_calibration(calibration, f"an area of {area.value} {area.unit}²")
     return area.to(calibration.unit).value / calibration.pixel_size**2
-
-
-class Area(BaseModel):
-    """A physical area, expressed as the square of a length unit (for example µm²)."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    value: NonNegativeFloat
-    unit: LengthUnit
-
-    def to(self, unit: LengthUnit) -> "Area":
-        factor = (_NANOMETRES_PER_UNIT[self.unit] / _NANOMETRES_PER_UNIT[unit]) ** 2
-        return Area(value=self.value * factor, unit=unit)

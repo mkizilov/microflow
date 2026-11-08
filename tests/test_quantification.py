@@ -79,11 +79,27 @@ def test_disc_geometry_approximates_analytic_values() -> None:
     labels = _disc((101, 101), (50, 50), radius)
     geometry = _only_object(measure_plane(labels, [_raw(np.ones((101, 101)))], None)).geometry
     assert geometry.area == pytest.approx(np.pi * radius**2, rel=0.01)
-    assert geometry.perimeter == pytest.approx(2 * np.pi * radius, rel=0.03)
+    # The 0.5-level iso-contour of a digital disc is longer than the circle. Measured ratios are
+    # documented in docs/measurements.md; see test_disc_perimeter_bias_shrinks_with_radius.
+    assert 1.0 < geometry.perimeter / (2 * np.pi * radius) < 1.10
     assert geometry.equivalent_diameter == pytest.approx(2 * radius, rel=0.01)
     assert geometry.centroid_row == pytest.approx(50.5)
     assert geometry.centroid_col == pytest.approx(50.5)
     assert geometry.eccentricity == pytest.approx(0.0, abs=0.02)
+
+
+def test_disc_perimeter_bias_shrinks_with_radius() -> None:
+    ratios = []
+    for radius in (10.0, 20.0, 40.0):
+        size = int(2 * radius + 21)
+        labels = _disc((size, size), (size // 2, size // 2), radius)
+        raw = _raw(np.ones((size, size)))
+        perimeter = _only_object(measure_plane(labels, [raw], None)).geometry.perimeter
+        ratios.append(perimeter / (2 * np.pi * radius))
+    # Measured ratios are about 1.09, 1.07 and 1.06: always above the circle, and closer to it as
+    # the disc grows. This pins the documented behaviour, not an exact estimate.
+    assert all(ratio > 1.0 for ratio in ratios)
+    assert ratios[0] > ratios[1] > ratios[2]
 
 
 def test_ellipse_eccentricity_matches_axis_ratio() -> None:
@@ -107,9 +123,7 @@ def test_equivalent_diameter_is_consistent_with_area_in_any_unit() -> None:
     for calibration in (None, PIXEL, Calibration(pixel_size=2.0, unit="nm")):
         table = measure_plane(labels, [_raw(np.ones((41, 41)))], calibration)
         geometry = _only_object(table).geometry
-        assert geometry.equivalent_diameter == pytest.approx(
-            np.sqrt(4 * geometry.area / np.pi)
-        )
+        assert geometry.equivalent_diameter == pytest.approx(np.sqrt(4 * geometry.area / np.pi))
 
 
 # --- intensity statistics ---------------------------------------------------------------------
@@ -228,7 +242,7 @@ def test_column_names_carry_the_length_unit() -> None:
     physical = measure_plane(labels, [raw], PIXEL).columns()
     assert "area_px2" in pixels and "perimeter_px" in pixels
     assert "area_um2" in physical and "perimeter_um" in physical
-    assert "integrated_intensity_um2" in physical
+    assert "raw_DAPI_integrated_intensity_um2" in physical
     assert "eccentricity" in physical
     assert physical[0] == "label"
 

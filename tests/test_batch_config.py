@@ -16,9 +16,7 @@ MINIMAL = "dataset:\n  images:\n    - name: a\n      path: data/a.tif\n"
 
 
 def test_relative_paths_resolve_against_the_config_file(tmp_path: Path) -> None:
-    config = load_batch_config(
-        _write(tmp_path, MINIMAL + "output_directory: out\n")
-    )
+    config = load_batch_config(_write(tmp_path, MINIMAL + "output_directory: out\n"))
     assert config.dataset.images[0].path == tmp_path / "data" / "a.tif"
     assert config.output_directory == tmp_path / "out"
 
@@ -50,7 +48,7 @@ def test_unknown_keys_are_rejected(tmp_path: Path) -> None:
 
 def test_invalid_preprocessing_step_is_located(tmp_path: Path) -> None:
     text = MINIMAL + "preprocessing:\n  - kind: sharpen\n"
-    with pytest.raises(ConfigError, match="preprocessing.0") as info:
+    with pytest.raises(ConfigError, match=r"preprocessing.0") as info:
         load_batch_config(_write(tmp_path, text))
     assert "sharpen" in str(info.value)
 

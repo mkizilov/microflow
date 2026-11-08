@@ -73,7 +73,7 @@ def _page(
         sections += ["<h2>Quality control (per image)</h2>", _quality_table(quality)]
     sections.append(_methods(summary))
     return (
-        "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">"
+        '<!DOCTYPE html>\n<html lang="en"><head><meta charset="utf-8">'
         f"<title>{title}</title><style>{_STYLE}</style></head><body>\n"
         + "\n".join(sections)
         + "\n</body></html>\n"
@@ -94,7 +94,7 @@ def _meta(summary: dict[str, Any]) -> str:
         ),
     ]
     rows = "".join(f"<tr><th>{_text(k)}</th><td>{v}</td></tr>" for k, v in items)
-    return f"<table class=\"meta\">{rows}</table>"
+    return f'<table class="meta">{rows}</table>'
 
 
 def _counts(summary: dict[str, Any]) -> str:
@@ -114,7 +114,7 @@ def _warnings(summary: dict[str, Any]) -> str:
     warnings = summary.get("warnings", [])
     if not warnings:
         return ""
-    items = "".join(f"<li class=\"warn\">{_text(w)}</li>" for w in warnings)
+    items = "".join(f'<li class="warn">{_text(w)}</li>' for w in warnings)
     return f"<h2>Warnings</h2><ul>{items}</ul>"
 
 
@@ -175,7 +175,7 @@ def _comparison_table(rows: list[dict[str, str]], summary: dict[str, Any]) -> st
         ]
         body.append(_row(cells))
     note = (
-        f"<p class=\"meta\">Adjusted p-values use "
+        f'<p class="meta">Adjusted p-values use '
         f"{_text(summary.get('correction', 'bh'))} within each test family. "
         "A NA means the test could not be computed for that comparison.</p>"
     )
@@ -184,9 +184,9 @@ def _comparison_table(rows: list[dict[str, str]], summary: dict[str, Any]) -> st
 
 def _figure_list(figures: list[tuple[str, str]]) -> str:
     if not figures:
-        return "<p class=\"meta\">No figures were written for this run.</p>"
+        return '<p class="meta">No figures were written for this run.</p>'
     items = [
-        f"<figure><img src=\"data:image/png;base64,{data}\" alt=\"{_text(name)}\">"
+        f'<figure><img src="data:image/png;base64,{data}" alt="{_text(name)}">'
         f"<figcaption>{_text(name)}</figcaption></figure>"
         for name, data in figures
     ]
@@ -197,9 +197,7 @@ def _quality_table(rows: list[dict[str, Any]]) -> str:
     header = "<tr><th>image</th><th>status</th><th>objects</th><th>flags</th><th>report</th></tr>"
     body = []
     for row in rows:
-        link = (
-            f"<a href=\"{_text(row['link'])}\">qc_report.html</a>" if row["link"] else "NA"
-        )
+        link = f'<a href="{_text(row["link"])}">qc_report.html</a>' if row["link"] else "NA"
         cells = [
             _text(row["name"]),
             _text(row["status"]),
@@ -213,7 +211,7 @@ def _quality_table(rows: list[dict[str, Any]]) -> str:
 
 def _methods(summary: dict[str, Any]) -> str:
     return (
-        "<h2>Method notes</h2><ul class=\"meta\">"
+        '<h2>Method notes</h2><ul class="meta">'
         "<li>Inference uses one value per biological sample. Objects are summarised within each "
         "sample and are never treated as independent replicates.</li>"
         "<li>Intervals are percentile bootstrap intervals that resample samples within groups.</li>"

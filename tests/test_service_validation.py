@@ -10,7 +10,7 @@ from microflow.service.errors import ServiceError
 from microflow.service.settings import Layout, prepare_layout
 from microflow.service.validation import batch_summary, plugin_uses, prepare_batch, prepare_stats
 from service_fixtures import Tree, batch_mapping, make_tree, settings_for, write_batch_config
-from stats_fixtures import design_mapping, write_dictionary, write_design, write_measurements
+from stats_fixtures import design_mapping, write_design, write_dictionary, write_measurements
 
 
 def _layout(tmp_path: Path) -> tuple[Tree, Layout]:

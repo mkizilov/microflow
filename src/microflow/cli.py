@@ -6,18 +6,9 @@ from typing import Annotated
 
 import numpy as np
 import typer
-
 from pydantic import ValidationError
 
 from microflow import __version__
-from microflow.config import (
-    ConfigError,
-    SegmentationConfig,
-    QualityControlConfig,
-    load_config,
-    load_quality_config,
-    load_segmentation_config,
-)
 from microflow.batch import (
     ANALYSIS_SECTIONS,
     BatchError,
@@ -31,27 +22,35 @@ from microflow.batch import (
 )
 from microflow.batch.records import ProgressEvent
 from microflow.batch.store import MANIFEST_FILE
+from microflow.config import (
+    ConfigError,
+    QualityControlConfig,
+    SegmentationConfig,
+    load_config,
+    load_quality_config,
+    load_segmentation_config,
+)
 from microflow.dataset import inspect_dataset
-from microflow.ml.cli import ml_app
-from microflow.stats.cli import stats_app
-from microflow.plugins import PluginError
-from microflow.plugins.registry import configure, discover
-from microflow.provenance.compare import diff_configs
-from microflow.provenance.guard import OutputConflictError
 from microflow.image_io import write_image
 from microflow.loading import ImageLoadError, LoadedImage, load_image
+from microflow.ml.cli import ml_app
+from microflow.plugins import PluginError
+from microflow.plugins.registry import configure, discover
 from microflow.preprocessing import PreprocessingError, preprocess
 from microflow.preprocessing.steps import load_steps
+from microflow.provenance.compare import diff_configs
+from microflow.provenance.guard import OutputConflictError
+from microflow.provenance.verify import VerificationError, verify_run
+from microflow.quantification import IntensitySource, MeasurementError, measure_plane
+from microflow.quantification.records import Source
 from microflow.reporting.figures import render_figures
 from microflow.reporting.html import render_html
 from microflow.reporting.preview import first_plane, write_before_after_png
 from microflow.reporting.qc import build_quality_report, inputs_from_images
 from microflow.sample_data import write_sample_dataset
-from microflow.quantification import IntensitySource, MeasurementError, measure_plane
-from microflow.quantification.records import Source
 from microflow.segmentation import score_segmentation, segment_image
-from microflow.provenance.verify import VerificationError, verify_run
 from microflow.service.settings import check_bind, load_settings, token_from_environment
+from microflow.stats.cli import stats_app
 from microflow.units import Calibration
 
 app = typer.Typer(
@@ -206,9 +205,7 @@ def measure_command(
     labels_path: Annotated[
         Path, typer.Argument(help="Label image from `microflow segment`, one Y-X plane.")
     ],
-    raw: Annotated[
-        Path, typer.Option(help="Raw intensity image: axes YX, or one channel axis C.")
-    ],
+    raw: Annotated[Path, typer.Option(help="Raw intensity image: axes YX, or one channel axis C.")],
     output: Annotated[Path, typer.Option(help="Output CSV with one row per object.")],
     corrected: Annotated[
         Path | None,
@@ -359,9 +356,7 @@ def qc_report_command(
 
     for flag in report.flags:
         typer.echo(f"flag {flag.code} [{flag.plane}]: {flag.message}")
-    typer.echo(
-        f"wrote {output} ({len(report.flags)} flag(s), {len(report.planes)} plane(s))"
-    )
+    typer.echo(f"wrote {output} ({len(report.flags)} flag(s), {len(report.planes)} plane(s))")
     if fail_on_flags and report.flags:
         raise typer.Exit(code=2)
 
@@ -396,9 +391,7 @@ def batch_command(
         f"output {config.output_directory}"
     )
     try:
-        manifest = run_batch(
-            config, progress=_print_progress, workers=workers, overwrite=overwrite
-        )
+        manifest = run_batch(config, progress=_print_progress, workers=workers, overwrite=overwrite)
     except (BatchError, PluginError, OSError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
@@ -632,9 +625,7 @@ def plugins_check_command(
 
 @app.command("make-sample-data")
 def make_sample_data(
-    out_dir: Annotated[Path, typer.Option(help="Destination directory.")] = Path(
-        "data/synthetic"
-    ),
+    out_dir: Annotated[Path, typer.Option(help="Destination directory.")] = Path("data/synthetic"),
     seed: Annotated[int, typer.Option(help="Base random seed.")] = 0,
     count: Annotated[int, typer.Option(min=1, help="Number of images to write.")] = 3,
 ) -> None:

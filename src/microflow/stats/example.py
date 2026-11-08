@@ -64,13 +64,11 @@ def write_example(directory: Path, *, seed: int = 0) -> tuple[Path, Path]:
                     objects = int(rng.integers(35, 46))
                     for label in range(1, objects + 1):
                         area = 40.0 * np.exp(
-                            area_effect + donor_area + field_area
-                            + rng.normal(0.0, OBJECT_SD_AREA)
+                            area_effect + donor_area + field_area + rng.normal(0.0, OBJECT_SD_AREA)
                         )
                         eccentricity = float(rng.beta(4, 2))
                         intensity = 800.0 * np.exp(
-                            donor_intensity + field_intensity
-                            + rng.normal(0.0, OBJECT_SD_INTENSITY)
+                            donor_intensity + field_intensity + rng.normal(0.0, OBJECT_SD_INTENSITY)
                         )
                         writer.writerow(
                             [
