@@ -12,6 +12,7 @@ from microflow.batch.engine import (
     CacheReport,
     CacheStatus,
     analysis_id,
+    configured_plugins,
     inspect_cache,
     run_batch,
 )
@@ -32,6 +33,7 @@ __all__ = [
     "OutputFile",
     "ProgressEvent",
     "analysis_id",
+    "configured_plugins",
     "export_run",
     "inspect_cache",
     "load_batch_config",

@@ -7,7 +7,7 @@ that contains the file, as they do for the pipeline configuration.
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from microflow.config import (
     ConfigError,
@@ -16,6 +16,7 @@ from microflow.config import (
     SegmentationConfig,
     format_validation_error,
 )
+from microflow.plugins.api import PluginSpec
 from microflow.preprocessing.steps import Step
 
 
@@ -28,9 +29,22 @@ class BatchConfig(BaseModel):
     segmentation: SegmentationConfig = Field(default_factory=SegmentationConfig)
     segmentation_channel: str | None = None
     quality_control: QualityControlConfig = Field(default_factory=QualityControlConfig)
+    features: list[PluginSpec] = Field(default_factory=list)
+    quality_checks: list[PluginSpec] = Field(default_factory=list)
     output_directory: Path = Path("batch-results")
     workers: int = Field(default=2, ge=1, le=8)
     memory_budget_mb: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _plugin_names_are_unique(self) -> "BatchConfig":
+        # A repeated feature would write the same output file twice, so it is refused up front.
+        sections = (("features", self.features), ("quality_checks", self.quality_checks))
+        for section, specs in sections:
+            names = [spec.name for spec in specs]
+            repeated = sorted({name for name in names if names.count(name) > 1})
+            if repeated:
+                raise ValueError(f"{section} lists {', '.join(repeated)} more than once")
+        return self
 
 
 def load_batch_config(path: Path) -> BatchConfig:

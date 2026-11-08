@@ -22,6 +22,14 @@ from microflow.batch.records import ItemRecord, OutputFile
 from microflow.config import QualityControlConfig, SegmentationConfig
 from microflow.image_io import write_image
 from microflow.loading import LoadedImage, load_array, load_image
+from microflow.plugins.api import PluginSpec
+from microflow.plugins.contracts import (
+    call,
+    check_feature_declaration,
+    check_features,
+    check_findings,
+)
+from microflow.plugins.registry import configure
 from microflow.preprocessing import preprocess
 from microflow.preprocessing.steps import Step
 from microflow.quantification import IntensitySource, measure_plane
@@ -49,6 +57,8 @@ class ImageJob:
     segmentation: SegmentationConfig
     segmentation_channel: str | None
     quality: QualityControlConfig
+    features: tuple[PluginSpec, ...] = ()
+    quality_checks: tuple[PluginSpec, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -115,6 +125,10 @@ def _run_image(job: ImageJob) -> _Outcome:
     measure_corrected = not any(step.kind == "normalize" for step in job.steps)
     if not measure_corrected:
         warnings.append("normalize step present: corrected intensities are not measured")
+    if any(step.kind == "plugin" for step in job.steps):
+        warnings.append(
+            "plugin preprocessor ran: corrected intensities are measured as returned by the plugin"
+        )
 
     raw_planes = _planes(raw.data, raw.axes)
     processed_planes = _planes(processed.data, processed.axes)
@@ -165,6 +179,9 @@ def _run_image(job: ImageJob) -> _Outcome:
         "measurements.csv",
         lambda path: _write_csv(path, columns, rows),
     )
+
+    outputs.update(_run_feature_plugins(job, raw_planes, labels, selected, raw.calibration))
+    warnings.extend(_run_quality_plugins(job, raw_planes, labels, selected, raw.calibration))
 
     inputs = inputs_from_images(
         load_array(
@@ -244,6 +261,12 @@ def _selected_stack(planes: _Planes, channel: int, height: int, width: int) -> n
     return planes.data[:, channel].reshape(planes.lead_shape + (height, width))
 
 
+def _write_table(
+    item_dir: Path, name: str, columns: list[str], rows: list[dict[str, Any]]
+) -> OutputFile:
+    return store.write_output(item_dir, name, lambda path: _write_csv(path, columns, rows))
+
+
 def _write_csv(path: Path, columns: list[str], rows: list[dict[str, Any]]) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=columns, lineterminator="\n")
@@ -253,3 +276,93 @@ def _write_csv(path: Path, columns: list[str], rows: list[dict[str, Any]]) -> No
 
 def _write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
+
+
+def _run_feature_plugins(
+    job: ImageJob,
+    raw_planes: _Planes,
+    labels: npt.NDArray[np.int32],
+    selected: int,
+    calibration: Calibration | None,
+) -> dict[str, OutputFile]:
+    """Feature plugins measure the raw selected channel; each writes its own CSV and dictionary."""
+    outputs: dict[str, OutputFile] = {}
+    for spec in job.features:
+        configured = configure("feature", spec)
+        label = f"feature plugin {spec.name!r}"
+        columns = check_feature_declaration(
+            call("feature", spec.name, "features", configured.plugin.features), label
+        )
+        headers = ["plane", "label", *(column.name for column in columns)]
+        rows: list[dict[str, Any]] = []
+        for index, plane_name in enumerate(raw_planes.names):
+            objects = {int(value) for value in np.unique(labels[index]) if value != 0}
+            if not objects:
+                continue
+            values = call(
+                "feature",
+                spec.name,
+                "measure",
+                configured.plugin.measure,
+                labels[index].copy(),
+                np.array(raw_planes.data[index, selected], dtype=np.float64),
+                calibration,
+                configured.options,
+            )
+            table = check_features(values, objects, columns, label)
+            for object_label in sorted(table):
+                rows.append({"plane": plane_name, "label": object_label, **table[object_label]})
+        outputs[f"feature:{spec.name}"] = _write_table(
+            job.item_dir, f"features_{spec.name}.csv", headers, rows
+        )
+        dictionary = [
+            {"name": "plane", "dtype": "string", "unit": "", "description": "plane of the row"},
+            {"name": "label", "dtype": "int64", "unit": "1", "description": "object label"},
+            *(
+                {
+                    "name": column.name,
+                    "dtype": "float64",
+                    "unit": column.unit,
+                    "description": column.description,
+                }
+                for column in columns
+            ),
+        ]
+        outputs[f"feature_dictionary:{spec.name}"] = _write_table(
+            job.item_dir,
+            f"features_{spec.name}_dictionary.csv",
+            ["name", "dtype", "unit", "description"],
+            dictionary,
+        )
+    return outputs
+
+
+def _run_quality_plugins(
+    job: ImageJob,
+    raw_planes: _Planes,
+    labels: npt.NDArray[np.int32],
+    selected: int,
+    calibration: Calibration | None,
+) -> list[str]:
+    """Quality plugins report findings as warnings; a finding does not fail the image."""
+    messages: list[str] = []
+    for spec in job.quality_checks:
+        configured = configure("qc", spec)
+        label = f"qc plugin {spec.name!r}"
+        for index, plane_name in enumerate(raw_planes.names):
+            findings = call(
+                "qc",
+                spec.name,
+                "check",
+                configured.plugin.check,
+                labels[index].copy(),
+                np.array(raw_planes.data[index, selected], dtype=np.float64),
+                calibration,
+                configured.options,
+            )
+            messages.extend(
+                f"qc plugin {spec.name} [{plane_name}]: {text}"
+                for text in check_findings(findings, label)
+            )
+    return messages
+

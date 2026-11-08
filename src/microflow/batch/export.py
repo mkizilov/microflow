@@ -183,6 +183,11 @@ def export_run(
         outputs=(),
         started_utc=started,
         finished_utc=utc_now(),
+        extra_algorithm_versions={
+            key: value
+            for key, value in manifest.provenance.algorithm_versions.items()
+            if key.startswith("plugin:")
+        },
     )
     metadata = {
         "microflow.provenance": base.model_dump_json(exclude={"outputs"}),

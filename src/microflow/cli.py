@@ -23,6 +23,7 @@ from microflow.batch import (
     BatchError,
     ExportError,
     analysis_id,
+    configured_plugins,
     export_run,
     inspect_cache,
     load_batch_config,
@@ -31,6 +32,8 @@ from microflow.batch import (
 from microflow.batch.records import ProgressEvent
 from microflow.batch.store import MANIFEST_FILE
 from microflow.dataset import inspect_dataset
+from microflow.plugins import PluginError
+from microflow.plugins.registry import configure, discover
 from microflow.provenance.compare import diff_configs
 from microflow.provenance.guard import OutputConflictError
 from microflow.image_io import write_image
@@ -110,7 +113,7 @@ def preprocess_image(
         flat = load_image(flatfield) if flatfield is not None else None
         step_list = load_steps(steps) if steps is not None else []
         result = preprocess(image, step_list, flatfield=flat)
-    except (ImageLoadError, ConfigError, PreprocessingError, ValueError) as exc:
+    except (ImageLoadError, ConfigError, PreprocessingError, PluginError, ValueError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
@@ -173,7 +176,7 @@ def segment_command(
         scores = None
         if reference is not None:
             scores = score_segmentation(result.labels, load_image(reference).data)
-    except (ImageLoadError, ConfigError, ValueError) as exc:
+    except (ImageLoadError, ConfigError, PluginError, ValueError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
@@ -392,7 +395,7 @@ def batch_command(
         manifest = run_batch(
             config, progress=_print_progress, workers=workers, overwrite=overwrite
         )
-    except (BatchError, OSError) as exc:
+    except (BatchError, PluginError, OSError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
@@ -461,10 +464,10 @@ def compare_configs_command(
     try:
         before = load_batch_config(old)
         after = load_batch_config(new)
-    except ConfigError as exc:
+        old_id, new_id = analysis_id(before), analysis_id(after)
+    except (ConfigError, PluginError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
-    old_id, new_id = analysis_id(before), analysis_id(after)
     same = "same" if old_id == new_id else "different"
     typer.echo(f"analysis identity: {same} ({old_id[:12]} vs {new_id[:12]})")
     changes = diff_configs(
@@ -487,7 +490,7 @@ def cache_status_command(
     try:
         config = load_batch_config(config_path)
         report = inspect_cache(config)
-    except (ConfigError, OSError) as exc:
+    except (ConfigError, PluginError, OSError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
     if report.directory_analysis is None:
@@ -498,6 +501,48 @@ def cache_status_command(
     for image in report.images:
         verdict = "reusable" if image.reusable else "rerun"
         typer.echo(f"  {image.name}: {verdict} ({image.reason})")
+
+
+plugins_app = typer.Typer(help="Inspect installed plugins. Listing runs no plugin code.")
+app.add_typer(plugins_app, name="plugins")
+
+
+@plugins_app.command("list")
+def plugins_list_command() -> None:
+    """List installed plugins. Only package metadata is read; no plugin code is run."""
+    found = discover()
+    if not found:
+        typer.echo("no plugins are installed")
+        return
+    for item in found:
+        typer.echo(f"{item.kind:<13} {item.name:<28} {item.distribution:<28} {item.target}")
+
+
+@plugins_app.command("check")
+def plugins_check_command(
+    config_path: Annotated[Path, typer.Argument(help="Batch YAML configuration.")],
+) -> None:
+    """Load every plugin a configuration names and validate its options. Runs no images."""
+    try:
+        config = load_batch_config(config_path)
+    except ConfigError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    named = configured_plugins(config)
+    if not named:
+        typer.echo("no plugins are named in this configuration")
+        return
+    failures = 0
+    for kind, spec in named:
+        try:
+            configured = configure(kind, spec)
+        except PluginError as exc:
+            failures += 1
+            typer.echo(f"FAIL {kind:<12} {spec.name}: {exc}")
+        else:
+            typer.echo(f"ok   {kind:<12} {spec.name} version {configured.version}")
+    if failures:
+        raise typer.Exit(code=1)
 
 
 @app.command("make-sample-data")

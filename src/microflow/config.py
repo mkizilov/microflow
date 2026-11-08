@@ -18,6 +18,7 @@ from pydantic import (
     model_validator,
 )
 
+from microflow.plugins.api import PluginSpec
 from microflow.units import Area, Calibration, Length
 
 AXIS_LETTERS = frozenset("TCZYX")
@@ -87,12 +88,24 @@ class ProcessingConfig(BaseModel):
     subtract_background: bool = False
 
 
+_BUILT_IN_SEGMENTATION_OPTIONS = frozenset(
+    {
+        "adaptive_block_size",
+        "adaptive_offset",
+        "opening_radius",
+        "closing_radius",
+        "watershed",
+        "watershed_min_distance",
+    }
+)
+
+
 class SegmentationConfig(BaseModel):
     """Classical segmentation settings. Lengths and areas convert through the image calibration."""
 
     model_config = ConfigDict(extra="forbid")
 
-    method: Literal["otsu", "threshold", "adaptive"] = "otsu"
+    method: Literal["otsu", "threshold", "adaptive", "plugin"] = "otsu"
     threshold: float | None = None
     adaptive_block_size: Length = Length(value=10.0, unit="um")
     adaptive_offset: float = 0.0
@@ -102,6 +115,7 @@ class SegmentationConfig(BaseModel):
     watershed_min_distance: Length = Length(value=2.0, unit="um")
     min_object_area: Area = Area(value=4.0, unit="um")
     exclude_border: bool = False
+    plugin: PluginSpec | None = None
 
     @field_validator("adaptive_block_size", "watershed_min_distance")
     @classmethod
@@ -109,6 +123,20 @@ class SegmentationConfig(BaseModel):
         if value.value <= 0:
             raise ValueError("must be greater than zero")
         return value
+
+    @model_validator(mode="after")
+    def _plugin_matches_method(self) -> "SegmentationConfig":
+        if self.method == "plugin":
+            if self.plugin is None:
+                raise ValueError("plugin is required when method is 'plugin'")
+            built_in = _BUILT_IN_SEGMENTATION_OPTIONS & self.model_fields_set
+            if built_in:
+                raise ValueError(
+                    f"{', '.join(sorted(built_in))} not used when method is 'plugin'"
+                )
+        elif self.plugin is not None:
+            raise ValueError("plugin is only used when method is 'plugin'")
+        return self
 
     @model_validator(mode="after")
     def _threshold_matches_method(self) -> "SegmentationConfig":

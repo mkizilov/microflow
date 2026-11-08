@@ -12,12 +12,14 @@ Steps run in the order listed. Nothing runs unless it is listed.
 """
 
 from pathlib import Path
-from typing import Annotated, Literal
+import re
+from typing import Annotated, Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from microflow.config import ConfigError, format_validation_error
+from microflow.plugins.api import PLUGIN_NAME_PATTERN
 from microflow.units import Length
 
 
@@ -90,13 +92,33 @@ class Normalize(BaseModel):
         return self
 
 
+class PluginStep(BaseModel):
+    """Runs a registered preprocessor plugin. Naming it here is what enables it."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["plugin"]
+    plugin: str
+    options: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("plugin")
+    @classmethod
+    def _valid_name(cls, value: str) -> str:
+        if not re.fullmatch(PLUGIN_NAME_PATTERN, value):
+            raise ValueError(
+                f"plugin names are lower-case letters, digits, '-' or '_' (got {value!r})"
+            )
+        return value
+
+
 Step = Annotated[
     SubtractConstant
     | SubtractBackground
     | GaussianFilter
     | MedianFilter
     | MaskArtifacts
-    | Normalize,
+    | Normalize
+    | PluginStep,
     Field(discriminator="kind"),
 ]
 

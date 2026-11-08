@@ -15,6 +15,9 @@ import numpy.typing as npt
 from pydantic import BaseModel
 
 from microflow.loading import LoadedImage
+from microflow.plugins.api import PluginSpec
+from microflow.plugins.contracts import call, check_image
+from microflow.plugins.registry import configure
 from microflow.preprocessing import operations as ops
 from microflow.preprocessing.operations import PreprocessingError
 from microflow.preprocessing.steps import (
@@ -22,6 +25,7 @@ from microflow.preprocessing.steps import (
     MaskArtifacts,
     MedianFilter,
     Normalize,
+    PluginStep,
     Step,
     SubtractBackground,
     SubtractConstant,
@@ -122,6 +126,29 @@ def _apply(
     if isinstance(step, MaskArtifacts):
         out, masked = ops.mask_artifacts(data, saturation if step.saturated else None, step.zero)
         return out, _record(stage, parameters, {"masked_pixels": masked})
+    if isinstance(step, PluginStep):
+        spec = PluginSpec(name=step.plugin, options=step.options)
+        configured = configure("preprocessor", spec)
+        label = f"preprocessor plugin {step.plugin!r}"
+        output = call(
+            "preprocessor",
+            step.plugin,
+            "process",
+            configured.plugin.process,
+            data.copy(),
+            image.calibration,
+            configured.options,
+        )
+        result = check_image(output, data.shape, label)
+        return result, _record(
+            f"plugin:{step.plugin}",
+            {
+                "plugin": step.plugin,
+                "version": configured.version,
+                "options": configured.options.model_dump(mode="json"),
+            },
+            {},
+        )
     if not isinstance(step, Normalize):
         raise PreprocessingError(f"unknown preprocessing step {stage!r}")
     out, scale, offset, low, high = ops.normalize_percentile(

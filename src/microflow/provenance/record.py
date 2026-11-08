@@ -9,7 +9,7 @@ Two identities are used:
   that were used.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
@@ -97,6 +97,7 @@ def make_record(
     outputs: Sequence[OutputFile],
     started_utc: str,
     finished_utc: str,
+    extra_algorithm_versions: Mapping[str, str] | None = None,
 ) -> ProvenanceRecord:
     return ProvenanceRecord(
         schema_version=OUTPUT_SCHEMA_VERSION,
@@ -106,7 +107,7 @@ def make_record(
         started_utc=started_utc,
         finished_utc=finished_utc,
         resolved_config=resolved_config,
-        algorithm_versions=dict(ALGORITHM_VERSIONS),
+        algorithm_versions={**ALGORITHM_VERSIONS, **dict(extra_algorithm_versions or {})},
         library_versions=library_versions(),
         runtime=runtime_info(),
         inputs=tuple(inputs),

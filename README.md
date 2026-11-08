@@ -84,6 +84,17 @@ resolved configuration, input hashes, runtime and timestamps. A run directory an
 directory refuse to overwrite results of a different analysis unless `--overwrite` is given. See
 `docs/provenance.md`.
 
+## Plugins
+
+Preprocessors, segmenters, feature extractors and quality checks can be provided by installed
+packages that register entry points. Installing a package is the decision to trust its code, and
+MicroFlow runs a plugin only when a configuration names it. See `docs/plugins.md`.
+
+```sh
+uv run microflow plugins list
+uv run microflow plugins check examples/batch.yaml
+```
+
 ## Development checks
 
 ```sh

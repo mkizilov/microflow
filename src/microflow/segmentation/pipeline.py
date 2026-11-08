@@ -12,6 +12,8 @@ import numpy as np
 import numpy.typing as npt
 
 from microflow.config import SegmentationConfig
+from microflow.plugins.contracts import call, check_labels
+from microflow.plugins.registry import configure
 from microflow.segmentation import algorithms as alg
 from microflow.units import Calibration, area_to_pixels, to_pixels
 
@@ -33,6 +35,8 @@ def segment_plane(
     calibration: Calibration | None,
 ) -> tuple[npt.NDArray[np.int32], float | None]:
     """Segment one Y-X plane. Returns the labels and the global threshold used, if any."""
+    if config.method == "plugin":
+        return _segment_with_plugin(plane, config, calibration), None
     block_size = 0
     if config.method == "adaptive":
         block_size = _odd_block_size(to_pixels(config.adaptive_block_size, calibration))
@@ -78,6 +82,31 @@ def segment_image(
         object_counts=tuple(counts),
         thresholds=tuple(levels),
     )
+
+
+def _segment_with_plugin(
+    plane: npt.NDArray[np.float64],
+    config: SegmentationConfig,
+    calibration: Calibration | None,
+) -> npt.NDArray[np.int32]:
+    if config.plugin is None:
+        raise ValueError("method 'plugin' needs a plugin to be named")
+    configured = configure("segmenter", config.plugin)
+    label = f"segmenter plugin {config.plugin.name!r}"
+    output = call(
+        "segmenter",
+        config.plugin.name,
+        "segment",
+        configured.plugin.segment,
+        np.array(plane, dtype=np.float64),
+        calibration,
+        configured.options,
+    )
+    labels = check_labels(output, plane.shape, label)
+    labels = alg.remove_small(labels, area_to_pixels(config.min_object_area, calibration))
+    if config.exclude_border:
+        labels = alg.remove_border(labels)
+    return alg.relabel_in_raster_order(labels)
 
 
 def _odd_block_size(pixels: float) -> int:

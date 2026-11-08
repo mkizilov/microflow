@@ -47,6 +47,8 @@ from microflow.batch.records import BatchManifest, ItemRecord, ProgressEvent
 from microflow.batch.store import BatchError
 from microflow.batch.worker import ImageJob, process_image
 from microflow.image_io import read_shape_and_dtype
+from microflow.plugins.api import PluginSpec
+from microflow.plugins.registry import configure
 from microflow.provenance.guard import OutputConflictError, prepare_directory, read_identity
 from microflow.provenance.hashing import digest
 from microflow.provenance.record import InputFile, analysis_identity, make_record, utc_now
@@ -54,7 +56,14 @@ from microflow.provenance.record import InputFile, analysis_identity, make_recor
 BATCH_SCHEMA_VERSION = 2
 BYTES_PER_ELEMENT = 40
 POLL_SECONDS = 0.2
-ANALYSIS_SECTIONS = ("preprocessing", "segmentation", "segmentation_channel", "quality_control")
+ANALYSIS_SECTIONS = (
+    "preprocessing",
+    "segmentation",
+    "segmentation_channel",
+    "quality_control",
+    "features",
+    "quality_checks",
+)
 _BATCH_MANAGED = (
     store.ITEMS_DIR,
     store.MANIFEST_FILE,
@@ -287,12 +296,54 @@ def _execute(
 
 
 def _analysis_settings(config: BatchConfig) -> dict[str, Any]:
-    return {
+    segmentation_exclude: set[str] = (
+        set() if config.segmentation.plugin is not None else {"plugin"}
+    )
+    settings: dict[str, Any] = {
         "preprocessing": [step.model_dump(mode="json") for step in config.preprocessing],
-        "segmentation": config.segmentation.model_dump(mode="json"),
+        "segmentation": config.segmentation.model_dump(
+            mode="json", exclude=segmentation_exclude
+        ),
         "segmentation_channel": config.segmentation_channel,
         "quality_control": config.quality_control.model_dump(mode="json"),
     }
+    # Plugin settings join the identity only when they are used, so a configuration without
+    # plugins keeps the identity it had before plugins existed and its results stay reusable.
+    if config.features:
+        settings["features"] = [spec.model_dump(mode="json") for spec in config.features]
+    if config.quality_checks:
+        settings["quality_checks"] = [
+            spec.model_dump(mode="json") for spec in config.quality_checks
+        ]
+    plugins = plugin_entries(config)
+    if plugins:
+        settings["plugins"] = list(plugins)
+    return settings
+
+
+def configured_plugins(config: BatchConfig) -> tuple[tuple[str, PluginSpec], ...]:
+    """Every plugin the configuration names, with its kind. Naming a plugin enables it."""
+    named: list[tuple[str, PluginSpec]] = [
+        ("preprocessor", PluginSpec(name=step.plugin, options=step.options))
+        for step in config.preprocessing
+        if step.kind == "plugin"
+    ]
+    if config.segmentation.method == "plugin" and config.segmentation.plugin is not None:
+        named.append(("segmenter", config.segmentation.plugin))
+    named += [("feature", spec) for spec in config.features]
+    named += [("qc", spec) for spec in config.quality_checks]
+    return tuple(named)
+
+
+def plugin_entries(config: BatchConfig) -> tuple[dict[str, str], ...]:
+    """Kind, name and version of each named plugin. Loading them checks that they work."""
+    versions: dict[tuple[str, str], str] = {}
+    for kind, spec in configured_plugins(config):
+        versions[(kind, spec.name)] = configure(kind, spec).version
+    return tuple(
+        {"kind": kind, "name": name, "version": version}
+        for (kind, name), version in sorted(versions.items())
+    )
 
 
 def _item_fingerprint(shared: str, image: Any) -> str:
@@ -361,6 +412,8 @@ def _plan(config: BatchConfig, run_dir: Path, shared: str) -> list[_Slot]:
             segmentation=config.segmentation,
             segmentation_channel=config.segmentation_channel,
             quality=config.quality_control,
+            features=tuple(config.features),
+            quality_checks=tuple(config.quality_checks),
         )
         note = "" if reason == store.NO_PREVIOUS else reason
         slots.append(
@@ -446,6 +499,7 @@ def _publish(
         outputs=(),
         started_utc=started,
         finished_utc=utc_now(),
+        extra_algorithm_versions=_plugin_versions(config),
     )
     manifest = BatchManifest(
         schema_version=BATCH_SCHEMA_VERSION,
@@ -496,6 +550,13 @@ def _run_warnings(items: tuple[ItemRecord, ...], status: str) -> list[str]:
     if status != "complete":
         warnings.append(f"run status: {status}")
     return warnings
+
+
+def _plugin_versions(config: BatchConfig) -> dict[str, str]:
+    return {
+        f"plugin:{entry['kind']}:{entry['name']}": entry["version"]
+        for entry in plugin_entries(config)
+    }
 
 
 def _probe_shape(path: Path) -> tuple[int, ...]:

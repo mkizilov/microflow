@@ -15,6 +15,7 @@ image-analysis workflow:
 | `microflow.quantification` | Per-object geometry and raw/corrected intensity statistics, with physical units when calibrated; CSV table | implemented |
 | `microflow.reporting` | Quality control (flags, summary), headless matplotlib figures, self-contained HTML; separate from analysis | implemented |
 | `microflow.batch` | Batch engine: bounded parallel processing, validated resume, cancellation, memory budget, and atomic publishing | implemented |
+| `microflow.plugins` | Plugin interfaces, entry-point discovery and loading, output contracts | implemented |
 | `microflow.provenance` | Provenance records, analysis and result-set identities, versions, overwrite guard, configuration diff, typed CSV/Parquet writers | implemented |
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |
 | `microflow.sample_data` | Deterministic synthetic images for demos and tests | implemented |
