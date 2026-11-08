@@ -107,6 +107,17 @@ uv run microflow ml train examples/ml/synthetic.yaml
 
 See `docs/machine-learning.md` for the data format, configuration, leakage rules and limits.
 
+A trained checkpoint segments new images with the same outputs as `microflow segment`, and can
+run inside batch analyses as the `ml-unet` plugin:
+
+```sh
+uv run microflow ml segment checkpoint.pt image.tif --output out/labels.tif --pixel-size 0.5 --unit um
+uv run microflow ml compare out/labels.tif classical/labels.tif
+```
+
+See `docs/ml-inference.md` for the model checks, device fallback, tiling, quality flags and the
+preprocessing a model needs.
+
 ## Development checks
 
 ```sh

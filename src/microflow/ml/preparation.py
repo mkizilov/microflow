@@ -64,6 +64,7 @@ class ImagePair:
     sample: str
     image_path: Path
     image_sha256: str
+    calibration: tuple[float, str] | None
     image: NDArray[np.float64]
     mask: NDArray[np.uint8]
 
@@ -101,8 +102,8 @@ def plan_for(
 def load_pairs(records: Sequence[SampleImage], digests: dict[Path, str]) -> tuple[ImagePair, ...]:
     pairs: list[ImagePair] = []
     for record in records:
-        image = _load_plane(record.image)
-        mask = _load_plane(record.mask)
+        image, calibration = _load_plane(record.image)
+        mask, _ = _load_plane(record.mask)
         if image.shape != mask.shape:
             raise MLError(
                 f"{record.mask}: mask shape {mask.shape} differs from image shape {image.shape}"
@@ -120,6 +121,7 @@ def load_pairs(records: Sequence[SampleImage], digests: dict[Path, str]) -> tupl
                 sample=record.sample,
                 image_path=record.image,
                 image_sha256=digests[record.image],
+                calibration=calibration,
                 image=image,
                 mask=mask.astype(np.uint8),
             )
@@ -127,11 +129,19 @@ def load_pairs(records: Sequence[SampleImage], digests: dict[Path, str]) -> tupl
     return tuple(pairs)
 
 
-def _load_plane(path: Path) -> NDArray[np.float64]:
+def training_calibrations(pairs: Sequence[ImagePair]) -> tuple[tuple[float, str], ...]:
+    """The distinct pixel sizes of the training images. Empty if none of them is calibrated."""
+    return tuple(sorted({pair.calibration for pair in pairs if pair.calibration is not None}))
+
+
+def _load_plane(path: Path) -> tuple[NDArray[np.float64], tuple[float, str] | None]:
     loaded = load_image(path, axes="YX")
     if loaded.data.ndim != 2:
         raise MLError(f"{path}: expected one 2-D Y-X plane, got shape {loaded.shape}")
-    return np.asarray(loaded.data, dtype=np.float64)
+    calibration = None
+    if loaded.calibration is not None:
+        calibration = (float(loaded.calibration.pixel_size), loaded.calibration.unit)
+    return np.asarray(loaded.data, dtype=np.float64), calibration
 
 
 def run_identity(

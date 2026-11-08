@@ -23,6 +23,10 @@ dependencies = [
 [project.scripts]
 microflow = "microflow.cli:app"
 
+# The trained-model segmenter. Its module does not import PyTorch until a plane is segmented.
+[project.entry-points."microflow.segmenters"]
+ml-unet = "microflow.ml.plugin:UNetSegmenter"
+
 [dependency-groups]
 dev = [
     "mypy>=1.11",

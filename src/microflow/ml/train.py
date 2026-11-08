@@ -21,7 +21,13 @@ from microflow.ml.checkpoint import save_checkpoint
 from microflow.ml.config import TrainingConfig
 from microflow.ml.inference import ImageResult, mean, resolve_device, score_pairs
 from microflow.ml.losses import segmentation_loss
-from microflow.ml.preparation import IDENTITY_KEY, RUN_FILE, PreparedRun, prepare
+from microflow.ml.preparation import (
+    IDENTITY_KEY,
+    RUN_FILE,
+    PreparedRun,
+    prepare,
+    training_calibrations,
+)
 from microflow.ml.splitting import SPLIT_NAMES
 from microflow.ml.torch_data import PatchDataset
 from microflow.ml.unet import build_unet
@@ -230,6 +236,9 @@ def _checkpoint_metadata(
         "epoch": record.epoch,
         "validation_dice": record.validation_dice,
         "validation_iou": record.validation_iou,
+        "training_calibrations": [
+            list(item) for item in training_calibrations(prepared.pairs["train"])
+        ],
         "config": config.model_dump(mode="json"),
         "microflow_version": __version__,
         "torch_version": _TORCH_VERSION,

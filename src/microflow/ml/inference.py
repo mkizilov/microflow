@@ -18,6 +18,7 @@ from microflow.ml.losses import segmentation_loss
 from microflow.ml.metrics import score_probabilities
 from microflow.ml.preparation import ImagePair, Normalization
 from microflow.ml.runtime import MLError
+from microflow.ml.tiling import pad_to_multiple
 from microflow.ml.unet import UNet
 
 
@@ -30,14 +31,6 @@ class ImageResult:
     iou: float
     predicted_pixels: int
     truth_pixels: int
-
-
-def pad_to_multiple(image: NDArray[np.float64], multiple: int) -> NDArray[np.float64]:
-    rows, cols = image.shape
-    padded: NDArray[np.float64] = np.pad(
-        image, ((0, (-rows) % multiple), (0, (-cols) % multiple)), mode="constant"
-    )
-    return padded
 
 
 def predict_logits(

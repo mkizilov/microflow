@@ -16,6 +16,7 @@ image-analysis workflow:
 | `microflow.reporting` | Quality control (flags, summary), headless matplotlib figures, self-contained HTML; separate from analysis | implemented |
 | `microflow.batch` | Batch engine: bounded parallel processing, validated resume, cancellation, memory budget, and atomic publishing | implemented |
 | `microflow.ml` | Supervised U-Net segmentation: split by sample, leakage checks, augmentation, training, checkpoints, evaluation (optional PyTorch) | implemented |
+| `microflow.ml` inference | Checkpoint validation, tiled inference, CPU/CUDA with fallback, labelled-mask postprocessing, quality reports, ML-vs-classical comparison, `ml-unet` plugin (`model_spec`, `tiling`, `fallback`, `postprocess`, `quality`, `pipeline`, `compare` are torch-free; `predict`, `plugin` load PyTorch lazily) | implemented |
 | `microflow.plugins` | Plugin interfaces, entry-point discovery and loading, output contracts | implemented |
 | `microflow.provenance` | Provenance records, analysis and result-set identities, versions, overwrite guard, configuration diff, typed CSV/Parquet writers | implemented |
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |

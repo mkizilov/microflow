@@ -24,11 +24,15 @@ class CheckpointError(MLError):
     """A checkpoint is missing, malformed, or does not belong to the configuration given."""
 
 
+class ModelCompatibilityError(MLError):
+    """A checkpoint cannot be used by this MicroFlow version, or its settings are unusable."""
+
+
 def require_torch() -> ModuleType:
     try:
         return import_module("torch")
     except ImportError as exc:
         raise MLDependencyError(
-            "PyTorch is required for training and evaluation. Install the optional extra with "
-            f"'uv sync --extra ml' ({exc})"
+            "PyTorch is required for ML training, evaluation and inference. Install the optional "
+            f"extra with 'uv sync --extra ml' ({exc})"
         ) from exc

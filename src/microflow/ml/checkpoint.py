@@ -12,10 +12,8 @@ from typing import Any
 
 import torch
 
+from microflow.ml.model_spec import CHECKPOINT_FORMAT, CHECKPOINT_SCHEMA
 from microflow.ml.runtime import CheckpointError
-
-CHECKPOINT_FORMAT = "microflow.unet"
-CHECKPOINT_SCHEMA = 1
 
 
 def save_checkpoint(path: Path, model: torch.nn.Module, metadata: dict[str, Any]) -> None:

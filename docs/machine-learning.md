@@ -154,6 +154,12 @@ loaded with `weights_only=True`, so opening one cannot run code.
 - The `ml` CI job runs `pytest -m ml`, then generates a dataset, shows its splits, trains, and
   evaluates from the command line.
 
+## Inference
+
+Trained checkpoints segment new images through `microflow ml segment`, and through the
+`ml-unet` batch plugin. See `docs/ml-inference.md` for version checks, devices and fallback, tiling,
+thresholding, quality reporting, comparison with classical masks, and the required preprocessing.
+
 ## Limitations
 
 - Two-dimensional, single-channel images only. Multi-channel and volumetric data are not supported.
