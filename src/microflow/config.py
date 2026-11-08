@@ -156,11 +156,11 @@ def load_config(path: Path) -> MicroFlowConfig:
     try:
         config = MicroFlowConfig.model_validate(raw)
     except ValidationError as exc:
-        raise ConfigError(_format_validation_error(path, exc)) from exc
+        raise ConfigError(format_validation_error(path, exc)) from exc
     return _resolve_paths(config, path.parent)
 
 
-def _format_validation_error(path: Path, exc: ValidationError) -> str:
+def format_validation_error(path: Path, exc: ValidationError) -> str:
     lines = [f"{path}: {exc.error_count()} validation error(s)"]
     for error in exc.errors():
         location = ".".join(str(part) for part in error["loc"]) or "<root>"

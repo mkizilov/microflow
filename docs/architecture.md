@@ -9,6 +9,8 @@ image-analysis workflow:
 | `microflow.image_io` | TIFF read/write, header inspection, and calibration JSON sidecars | implemented |
 | `microflow.config` | Pydantic pipeline configuration models and YAML loading | implemented |
 | `microflow.loading` | TIFF, OME-TIFF and `.npy` loading with dtype, axes, calibration and channel metadata preserved | implemented |
+| `microflow.preprocessing` | Flat-field correction, background, Gaussian and median filters, artifact masking, percentile normalisation; steps in YAML | implemented |
+| `microflow.reporting.preview` | Before/after PNG previews (display-only stretch) | implemented |
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |
 | `microflow.sample_data` | Deterministic synthetic images for demos and tests | implemented |
 | `microflow.cli` | Typer entry point (`microflow`) | implemented |
@@ -53,6 +55,28 @@ the native array, its axis labels, calibration and channel names.
   are rejected rather than split.
 - `lazy=True` memory-maps uncompressed TIFF and `.npy` data. Compressed TIFF is read into memory,
   and `storage` reports which path was used.
+
+## Preprocessing
+
+`microflow preprocess INPUT --output OUT.tif [--steps steps.yaml] [--flatfield flat.tif]
+[--pixel-size N --unit U] [--preview preview.png]` runs the stages below and writes float64 TIFF
+plus `OUT.provenance.json`. The sidecar lists every stage with its parameters and derived values
+(pixel radii, normalisation scale and offset, pixels masked, non-finite pixels found). See
+`examples/preprocess_steps.yaml`.
+
+- Stages run in the order listed. Nothing runs unless listed; flat-field correction runs first
+  when a reference is given.
+- Output is always float64. Integers up to 2**53 convert exactly; larger integers are refused.
+- NaN and infinity in the input become invalid pixels, are counted, and stay invalid. Filters
+  ignore invalid pixels; normalisation excludes them.
+- Lengths are in physical units and need calibration; they convert through the calibration unit.
+- Flat-field: divides by `flat / mean(flat)`, so mean intensity is preserved. Reference pixels
+  that are zero, negative, or non-finite are refused.
+- `normalize` is affine (`output = scale * input + offset`) and recorded. It is opt-in and is
+  meant for display and segmentation. Measurements should use the unnormalised image.
+- `mask_artifacts` compares current values, so place it before arithmetic steps.
+- Median filtering uses a NaN-aware path (per-pixel) when invalid pixels are present, which is
+  slower on large images.
 
 ## Conventions
 

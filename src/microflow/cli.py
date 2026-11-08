@@ -1,14 +1,23 @@
 """Command-line interface for MicroFlow."""
 
+import json
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
+from pydantic import ValidationError
+
 from microflow import __version__
 from microflow.config import ConfigError, load_config
 from microflow.dataset import inspect_dataset
+from microflow.image_io import write_image
+from microflow.loading import ImageLoadError, load_image
+from microflow.preprocessing import PreprocessingError, preprocess
+from microflow.preprocessing.steps import load_steps
+from microflow.reporting.preview import first_plane, write_before_after_png
 from microflow.sample_data import write_sample_dataset
+from microflow.units import Calibration
 
 app = typer.Typer(
     help="MicroFlow: scientific image processing and quantitative analysis.",
@@ -40,6 +49,69 @@ def validate_config(
     typer.echo(f"valid: {config_path} ({len(config.dataset.images)} images)")
     for image in metadata:
         typer.echo(f"  {image.name}: axes={image.axes} shape={image.shape} dtype={image.dtype}")
+
+
+@app.command("preprocess")
+def preprocess_image(
+    input_path: Annotated[Path, typer.Argument(help="Input TIFF or .npy image.")],
+    output: Annotated[Path, typer.Option(help="Output TIFF; written as float64.")],
+    steps: Annotated[
+        Path | None, typer.Option(help="YAML file listing preprocessing steps in order.")
+    ] = None,
+    flatfield: Annotated[
+        Path | None, typer.Option(help="Flat-field reference image with axes YX.")
+    ] = None,
+    pixel_size: Annotated[
+        float | None,
+        typer.Option(help="Pixel size; overrides the file's calibration. Needs --unit."),
+    ] = None,
+    unit: Annotated[
+        str | None, typer.Option(help="Length unit for --pixel-size: nm, um, mm or m.")
+    ] = None,
+    preview: Annotated[
+        Path | None, typer.Option(help="Write a before/after PNG of the first plane.")
+    ] = None,
+) -> None:
+    """Apply preprocessing steps and write the result with a provenance sidecar.
+
+    The sidecar is OUTPUT with a .provenance.json suffix. It records each stage with its
+    parameters, derived pixel sizes and normalisation scale.
+    """
+    try:
+        image = load_image(input_path, calibration=_calibration_option(pixel_size, unit))
+        flat = load_image(flatfield) if flatfield is not None else None
+        step_list = load_steps(steps) if steps is not None else []
+        result = preprocess(image, step_list, flatfield=flat)
+    except (ImageLoadError, ConfigError, PreprocessingError, ValueError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    write_image(output, result.data)
+    provenance_path = output.with_suffix(".provenance.json")
+    provenance_path.write_text(
+        json.dumps(result.provenance(str(input_path)), indent=2) + "\n", encoding="utf-8"
+    )
+    if preview is not None:
+        write_before_after_png(
+            preview,
+            first_plane(image.data, image.axes),
+            first_plane(result.data, result.axes),
+        )
+    typer.echo(f"wrote {output}")
+    typer.echo(f"wrote {provenance_path}")
+
+
+def _calibration_option(pixel_size: float | None, unit: str | None) -> Calibration | None:
+    if pixel_size is None:
+        return None
+    if unit is None:
+        typer.echo("error: --pixel-size needs --unit", err=True)
+        raise typer.Exit(code=1)
+    try:
+        return Calibration.model_validate({"pixel_size": pixel_size, "unit": unit})
+    except ValidationError as exc:
+        typer.echo(f"error: invalid calibration: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command("make-sample-data")

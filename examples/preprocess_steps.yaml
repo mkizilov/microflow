@@ -1,0 +1,25 @@
+# Example preprocessing steps. Steps run in the order listed; nothing runs unless listed.
+# Length values need pixel calibration: the image's own, or --pixel-size and --unit.
+#
+#   uv run microflow preprocess data/synthetic/synthetic_00.tif \
+#       --output results/synthetic_00_processed.tif \
+#       --steps examples/preprocess_steps.yaml \
+#       --pixel-size 0.5 --unit um \
+#       --preview results/synthetic_00_before_after.png
+steps:
+  - kind: mask_artifacts      # invalidate saturated pixels before any arithmetic
+    saturated: true
+    zero: false
+  - kind: subtract_constant   # fixed camera offset, in raw intensity units
+    value: 100
+  - kind: subtract_background # morphological background; radius should exceed object size
+    radius: {value: 10, unit: um}
+  - kind: median              # removes single-pixel shot noise
+    radius: {value: 0.5, unit: um}
+  - kind: gaussian            # smoothing for display and segmentation
+    sigma: {value: 1, unit: um}
+  - kind: normalize           # affine rescale for display; scale and offset are recorded
+    lower_percentile: 1
+    upper_percentile: 99.5
+    target_min: 0
+    target_max: 1
