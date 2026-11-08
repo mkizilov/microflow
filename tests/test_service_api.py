@@ -444,6 +444,9 @@ def test_an_application_refuses_a_short_token_and_missing_directories(tmp_path: 
 def test_a_real_batch_runs_through_the_api_and_reports_quality_control(tmp_path: Path) -> None:
     tree = make_tree(tmp_path)
     mapping = batch_mapping(tree, output="real-run")
+    # Calibrated images: the default minimum object area is in um², which needs a calibration.
+    for item in mapping["dataset"]["images"]:
+        item["calibration"] = {"pixel_size": 0.5, "unit": "um"}
     images = [Path(item["path"]) for item in mapping["dataset"]["images"]]
     for index, path in enumerate(images):
         discs = [Disc((20.0, 20.0), 8.0), Disc((42.0, 44.0), 6.0)]

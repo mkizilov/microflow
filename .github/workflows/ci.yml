@@ -9,6 +9,29 @@ permissions:
 
 jobs:
   test:
+    # Every supported Python version runs the full core suite. Optional extras get their own jobs.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.22"
+          enable-cache: true
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv sync --locked --python ${{ matrix.python-version }}
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run pytest
+      - run: uv run microflow make-sample-data --out-dir "$RUNNER_TEMP/synthetic"
+
+  reference:
+    # Fails if the committed CLI and HTTP reference differs from the code, and runs the tests that need
+    # only the standard library.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,14 +41,15 @@ jobs:
           enable-cache: true
       - run: uv python install 3.12
       - run: uv sync --locked
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy
-      - run: uv run pytest
-      - run: uv run microflow make-sample-data --out-dir "$RUNNER_TEMP/synthetic"
+      - run: python3 scripts/generate_reference.py --check
+      - run: uv run pytest tests/test_provenance_verify.py tests/test_stats_report.py
 
   ml:
     # CPU-only PyTorch. The ML tests run here; the GPU test is skipped without CUDA.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,8 +57,8 @@ jobs:
         with:
           version: "0.8.22"
           enable-cache: true
-      - run: uv python install 3.12
-      - run: uv sync --locked --extra ml
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv sync --locked --extra ml --python ${{ matrix.python-version }}
       - run: uv run pytest -m ml
       - run: uv run microflow ml make-dataset data/synthetic-ml --samples 6 --size 64 --seed 0
       - run: uv run microflow ml splits examples/ml/synthetic.yaml
@@ -43,6 +67,24 @@ jobs:
 
   service:
     # The HTTP service needs the optional extra. The rest of the suite runs without it.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.22"
+          enable-cache: true
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv sync --locked --extra service --python ${{ matrix.python-version }}
+      - run: uv run pytest -m service
+
+  demo:
+    # The end-to-end demonstration: synthetic images to segmentation, statistics, the HTML report and
+    # provenance checks. It writes to data/demo and removes that directory afterwards.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,5 +93,8 @@ jobs:
           version: "0.8.22"
           enable-cache: true
       - run: uv python install 3.12
-      - run: uv sync --locked --extra service
-      - run: uv run pytest -m service
+      - run: uv sync --locked
+      - run: uv run python examples/demo/run_demo.py --clean
+      - name: Remove generated demo data
+        if: always()
+        run: rm -rf data/demo

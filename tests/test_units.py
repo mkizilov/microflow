@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from microflow.image_io import read_calibration, write_calibration
-from microflow.units import Area, Calibration, Length
+from microflow.units import Area, Calibration, Length, area_to_pixels, to_pixels
 
 
 def test_calibration_round_trips_through_json(tmp_path: Path) -> None:
@@ -44,6 +44,25 @@ def test_area_conversion_squares_the_length_factor() -> None:
     converted = Area(value=4.0, unit="um").to("nm")
     assert converted.unit == "nm"
     assert converted.value == pytest.approx(4.0e6)
+
+
+def test_pixel_conversions_use_the_calibration_and_square_for_areas() -> None:
+    calibration = Calibration(pixel_size=0.5, unit="um")
+    assert to_pixels(Length(value=2.0, unit="um"), calibration) == pytest.approx(4.0)
+    assert area_to_pixels(Area(value=4.0, unit="um"), calibration) == pytest.approx(16.0)
+
+
+def test_zero_is_zero_pixels_without_a_calibration() -> None:
+    # A zero minimum area means no filter. It has no physical size, so it needs no calibration.
+    assert area_to_pixels(Area(value=0.0, unit="um"), None) == 0.0
+    assert to_pixels(Length(value=0.0, unit="nm"), None) == 0.0
+
+
+def test_a_positive_quantity_without_a_calibration_is_refused() -> None:
+    with pytest.raises(ValueError, match="needs pixel calibration"):
+        area_to_pixels(Area(value=4.0, unit="um"), None)
+    with pytest.raises(ValueError, match="needs pixel calibration"):
+        to_pixels(Length(value=1.0, unit="um"), None)
 
 
 def test_length_rejects_negative_value() -> None:

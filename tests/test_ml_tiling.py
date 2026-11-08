@@ -24,6 +24,13 @@ def test_receptive_radius_follows_the_stated_bound() -> None:
         receptive_radius(0)
 
 
+@pytest.mark.parametrize(("depth", "deepest_path"), [(1, 9.5), (2, 24.5), (3, 54.5)])
+def test_the_bound_covers_the_hand_derived_deepest_path(depth: int, deepest_path: float) -> None:
+    # Hand derivation in ml/tiling.py: conv adds the stride, pool adds half the stride, upsampling
+    # adds the finer stride. The bound must never fall below the deepest path.
+    assert receptive_radius(depth) >= deepest_path
+
+
 def test_padding_adds_zeros_at_the_bottom_and_right_only() -> None:
     image = np.arange(6, dtype=np.float64).reshape(2, 3)
     padded = pad_to_multiple(image, 4)

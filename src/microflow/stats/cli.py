@@ -14,6 +14,7 @@ from microflow.stats.data import check_assignments, read_measurements
 from microflow.stats.design import load_design
 from microflow.stats.errors import StatsError
 from microflow.stats.example import write_example
+from microflow.stats.report import render_study_report
 from microflow.stats.study import run_study
 
 stats_app = typer.Typer(
@@ -88,6 +89,26 @@ def example_command(
         _fail(exc)
     typer.echo(f"wrote {measurements}")
     typer.echo(f"wrote {dictionary}")
+
+
+@stats_app.command("report")
+def report_command(
+    results: Annotated[Path, typer.Argument(help="Output directory of a stats run.")],
+    output: Annotated[Path, typer.Option(help="HTML file to write.")],
+    batch_dir: Annotated[
+        Path | None,
+        typer.Option(
+            "--batch-dir",
+            help="Batch run that produced the measurements; links each image's QC report.",
+        ),
+    ] = None,
+) -> None:
+    """Write one self-contained HTML report: tables, figures, warnings and method notes."""
+    try:
+        written = render_study_report(results, output, batch_dir=batch_dir)
+    except (OSError, ValueError, KeyError) as exc:
+        _fail(exc)
+    typer.echo(f"wrote {written}")
 
 
 def _comparison_line(row: ComparisonRow, confidence: float) -> str:

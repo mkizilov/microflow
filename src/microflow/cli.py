@@ -50,6 +50,7 @@ from microflow.sample_data import write_sample_dataset
 from microflow.quantification import IntensitySource, MeasurementError, measure_plane
 from microflow.quantification.records import Source
 from microflow.segmentation import score_segmentation, segment_image
+from microflow.provenance.verify import VerificationError, verify_run
 from microflow.service.settings import check_bind, load_settings, token_from_environment
 from microflow.units import Calibration
 
@@ -471,6 +472,29 @@ def serve_command(
     except ConfigError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
+
+
+@app.command("verify-run")
+def verify_run_command(
+    run_dir: Annotated[Path, typer.Argument(help="Output directory of a finished batch run.")],
+) -> None:
+    """Re-hash every input and output a run recorded and report any that are missing or changed.
+
+    This checks that the files are the ones the run recorded. It does not recompute the analysis.
+    Exit status: 0 all files match, 1 a file is missing or modified, or the run cannot be verified.
+    """
+    try:
+        verification = verify_run(run_dir)
+    except VerificationError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    checks = verification.checks
+    typer.echo(f"run status: {verification.run_status}; {len(checks)} recorded file(s) checked")
+    for check in verification.failed:
+        typer.echo(f"{check.status}: {check.kind} {check.name} ({check.path})")
+    if not verification.ok:
+        raise typer.Exit(code=1)
+    typer.echo("all recorded files match")
 
 
 @app.command("export")

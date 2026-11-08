@@ -274,6 +274,8 @@ def _area_limits(
     def convert(area: Area | None) -> float | None:
         if area is None:
             return None
+        if area.value == 0:
+            return 0.0
         if calibration is None:
             raise ValueError(
                 "object area limits need pixel calibration; the image has none, "

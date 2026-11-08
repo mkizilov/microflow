@@ -1,0 +1,14 @@
+# Settings for the container image (see Dockerfile and compose.yaml). The container's paths are fixed:
+# inputs are mounted read-only at /data/input, results go to /data/output, and the job database is in
+# /data/state, which must stay outside /data/output. The host and port are overridden by the image's
+# entrypoint, which listens on all container interfaces; the host publishes only loopback.
+state_directory: /data/state
+input_roots:
+  - /data/input
+output_roots:
+  - /data/output
+max_concurrent_jobs: 1
+max_queued_jobs: 8
+host: 0.0.0.0
+port: 21300
+allow_remote: true

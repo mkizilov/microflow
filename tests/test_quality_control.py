@@ -165,6 +165,15 @@ def test_area_limits_need_calibration() -> None:
         _report(np.ones((10, 10)), np.zeros((10, 10), dtype=np.int32), settings)
 
 
+def test_a_zero_area_limit_is_no_filter_and_needs_no_calibration() -> None:
+    # Matches microflow.units: zero is zero pixels in any unit, so an uncalibrated image can use it.
+    settings = QualityControlConfig(min_object_area=Area(value=0, unit="um"))
+    labels = np.zeros((10, 10), dtype=np.int32)
+    labels[2:4, 2:4] = 1
+    report = _report(np.ones((10, 10)), labels, settings)
+    assert not any(flag.code == "object_area_below" for flag in report.flags)
+
+
 def test_each_plane_is_summarised_and_flagged_separately() -> None:
     raw = np.ones((2, 40, 40))
     labels = np.zeros((2, 40, 40), dtype=np.int32)

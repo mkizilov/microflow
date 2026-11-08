@@ -1,0 +1,33 @@
+# Demonstration batch: segment and measure the synthetic two-condition images written by run_demo.py.
+# Paths resolve relative to this file. Each image is calibrated (0.5 um per pixel), so areas are in
+# square micrometres. Two donors per condition are technical-replicate fields of one donor.
+name: demo-batch
+dataset:
+  images:
+    - {name: control-01_field0, path: ../../data/demo/raw/control-01_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: control-01_field1, path: ../../data/demo/raw/control-01_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: control-02_field0, path: ../../data/demo/raw/control-02_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: control-02_field1, path: ../../data/demo/raw/control-02_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: control-03_field0, path: ../../data/demo/raw/control-03_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: control-03_field1, path: ../../data/demo/raw/control-03_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: control-04_field0, path: ../../data/demo/raw/control-04_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: control-04_field1, path: ../../data/demo/raw/control-04_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-01_field0, path: ../../data/demo/raw/treated-01_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-01_field1, path: ../../data/demo/raw/treated-01_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-02_field0, path: ../../data/demo/raw/treated-02_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-02_field1, path: ../../data/demo/raw/treated-02_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-03_field0, path: ../../data/demo/raw/treated-03_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-03_field1, path: ../../data/demo/raw/treated-03_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-04_field0, path: ../../data/demo/raw/treated-04_field0.tif, calibration: {pixel_size: 0.5, unit: um}}
+    - {name: treated-04_field1, path: ../../data/demo/raw/treated-04_field1.tif, calibration: {pixel_size: 0.5, unit: um}}
+# Classical segmentation: Otsu threshold, 8-connected objects, no watershed. Objects under 4 um^2 are
+# removed, which is far below the demo objects (about 25 to 40 um^2).
+segmentation:
+  method: otsu
+  min_object_area: {value: 4.0, unit: um}
+quality_control:
+  max_foreground_fraction: 0.6
+  min_object_area: {value: 4.0, unit: um}
+  max_object_area: {value: 200.0, unit: um}
+output_directory: ../../data/demo/results/batch
+workers: 1

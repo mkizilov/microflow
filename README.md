@@ -111,7 +111,8 @@ A trained checkpoint segments new images with the same outputs as `microflow seg
 run inside batch analyses as the `ml-unet` plugin:
 
 ```sh
-uv run microflow ml segment checkpoint.pt image.tif --output out/labels.tif --pixel-size 0.5 --unit um
+uv run microflow ml segment checkpoint.pt image.tif --output out/labels.tif \
+  --pixel-size 0.5 --unit um
 uv run microflow ml compare out/labels.tif classical/labels.tif
 ```
 
@@ -130,8 +131,8 @@ uv run microflow stats check examples/stats/design.yaml
 uv run microflow stats run examples/stats/design.yaml
 ```
 
-See `docs/statistics.md` for the design format, the assumptions behind each estimate, the corrections,
-and the outputs.
+See `docs/statistics.md` for the design format, the assumptions behind each estimate, the
+corrections, and the outputs.
 
 ## HTTP analysis service (optional)
 
@@ -155,7 +156,11 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy
 uv run pytest
+python3 scripts/generate_reference.py --check
 ```
+
+CI runs these on Python 3.12 and 3.13, plus the optional extras, the demonstration and the reference
+check.
 
 ## Dependency locking
 
@@ -163,13 +168,44 @@ uv run pytest
 dependencies in `pyproject.toml`, and commit it. CI installs with `uv sync --locked`, which
 fails if the lock file is missing or out of date.
 
+## Documentation
+
+- [Installation](docs/installation.md): versions, extras, troubleshooting.
+- [User guide](docs/user-guide.md): from images to a statistical report, step by step.
+- [Reproducibility](docs/reproducibility.md): what is fixed, what is not, how to rerun.
+- [Data provenance](docs/provenance-examples.md): which inputs, settings and software produced a
+  result.
+- [CLI reference](docs/reference/cli.md) and [HTTP API reference](docs/reference/http-api.md), both
+  generated from the code.
+- [Audit](docs/audit.md): what was checked for numerical accuracy, units, axes, statistics,
+  segmentation and model evaluation, and what remains open.
+- [Benchmarks](docs/benchmarks.md) and [Docker](docs/docker.md).
+
+## Demonstration
+
+`examples/demo/run_demo.py` runs the whole chain on synthetic microscopy. It generates calibrated
+images with known ground truth, segments and measures them, scores the segmentation against the truth,
+exports the measurements, compares two conditions by biological sample, writes one HTML report, and
+verifies the run's recorded files.
+
+```sh
+uv run python examples/demo/run_demo.py --clean
+```
+
+Outputs go to `data/demo/` (git-ignored). Open `data/demo/results/report.html` when it finishes.
+
 ## Layout
 
 ```text
-src/microflow/   package: image_io, units, sample_data, cli, and stage subpackages
+src/microflow/   package: core processing, batch, ml, stats, service, provenance, reporting
 tests/           pytest suite (deterministic, uses tmp_path only)
-docs/            architecture notes
+examples/        example configurations, the demonstration, and the optional service's settings
+benchmarks/      pipeline timing script (no results are committed)
+scripts/         generate_reference.py, which writes docs/reference from the code
+docs/            user, reference, statistics, service and audit documentation
 .github/         CI workflow
+Dockerfile       container image for the optional service
+compose.yaml     local deployment of that image, published on loopback only
 ```
 
 See `docs/architecture.md` for the module map and conventions.

@@ -23,10 +23,12 @@ Box = tuple[int, int, int, int]
 def receptive_radius(depth: int) -> int:
     """Upper bound, in pixels, on how far an output pixel can depend on input pixels.
 
-    For a U-Net with ``depth`` downsamplings, each 3 x 3 convolution adds one step of its level's
-    stride to the radius, and each 2 x 2 pooling or transposed convolution adds at most one step.
-    Summing along the deepest path gives ``8 * 2**depth - 6``. This is a bound, not the exact
-    support, and it is checked against the measured gradient support in the test suite.
+    Radii are tracked in input pixels along the deepest path. A 3 x 3 convolution at stride s adds
+    s; a 2 x 2 max-pool adds s / 2 and doubles the stride; a 2 x 2 transposed convolution adds the
+    finer stride. The deepest path then gives radii of 9.5, 24.5 and 54.5 pixels for depths 1, 2
+    and 3, and ``8 * 2**depth - 6`` (10, 26, 58) is a valid upper bound for each. It is the default
+    overlap, so it must remain an upper bound; the test suite checks it against both the hand
+    derivation and the measured gradient support.
     """
     if depth < 1:
         raise ValueError(f"depth must be at least 1; got {depth}")

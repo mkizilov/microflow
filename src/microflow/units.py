@@ -41,7 +41,13 @@ def _require_calibration(calibration: Calibration | None, quantity: str) -> Cali
 
 
 def to_pixels(length: Length, calibration: Calibration | None) -> float:
-    """Convert a physical length to a number of pixels using the image calibration."""
+    """Convert a physical length to a number of pixels using the image calibration.
+
+    Zero is zero pixels in any unit, so it needs no calibration: a zero minimum area means no
+    filter, and an uncalibrated image can still use it.
+    """
+    if length.value == 0:
+        return 0.0
     calibration = _require_calibration(
         calibration, f"a length of {length.value} {length.unit}"
     )
@@ -49,7 +55,12 @@ def to_pixels(length: Length, calibration: Calibration | None) -> float:
 
 
 def area_to_pixels(area: Area, calibration: Calibration | None) -> float:
-    """Convert a physical area to a number of pixels using the image calibration."""
+    """Convert a physical area to a number of pixels using the image calibration.
+
+    Zero needs no calibration, for the same reason as :func:`to_pixels`.
+    """
+    if area.value == 0:
+        return 0.0
     calibration = _require_calibration(calibration, f"an area of {area.value} {area.unit}²")
     return area.to(calibration.unit).value / calibration.pixel_size**2
 

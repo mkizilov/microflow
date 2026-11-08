@@ -1,0 +1,26 @@
+# Local deployment of the analysis service. Start it with:
+#   export MICROFLOW_SERVICE_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+#   docker compose up --build
+#
+# Only the host's loopback interface is published, so the service is reachable from this machine.
+# The input directory is mounted read-only. Not run in the authoring environment; see docs/docker.md.
+services:
+  microflow:
+    build: .
+    image: microflow-service:local
+    environment:
+      MICROFLOW_SERVICE_TOKEN: ${MICROFLOW_SERVICE_TOKEN:?set MICROFLOW_SERVICE_TOKEN to a secret of at least 32 characters}
+    ports:
+      - "127.0.0.1:21300:21300"
+    volumes:
+      - ./data/service-input:/data/input:ro
+      - ./data/service-output:/data/output
+      - ./data/service-state:/data/state
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

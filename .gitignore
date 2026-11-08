@@ -24,4 +24,6 @@ stats-results/
 data/service-input/
 data/service-output/
 data/service-state/
+data/demo/
+benchmarks/out/
 ml-results/

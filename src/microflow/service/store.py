@@ -5,6 +5,8 @@ Every state change is one guarded statement (for example, ``UPDATE ... WHERE sta
 statement atomic, and a lock serialises access to the single connection.
 """
 
+from __future__ import annotations
+
 import json
 import sqlite3
 import threading

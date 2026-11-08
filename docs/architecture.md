@@ -103,6 +103,12 @@ and Dice and IoU when a reference is given. See `examples/segment.yaml`.
 - Lengths and areas need calibration. Adaptive block size is rounded to an odd pixel count of at
   least 3.
 - NaN pixels are background and do not affect thresholds.
+- Classical thresholding is strict: a pixel is foreground when it is brighter than the level. The ML
+  path binarises probabilities inclusively (`>=`). The two differ only for values exactly equal to a
+  threshold, which matters for integer images with an Otsu or fixed level.
+- Morphological radii and filter windows are rounded to whole pixels, so the error is up to half a
+  pixel. Use calibrations whose radii are close to whole pixels when this matters (see
+  docs/audit.md).
 - Dice = 2|A∩B|/(|A|+|B|); IoU = |A∩B|/|A∪B|, on foreground pixels. Two empty masks score 1.0.
 - The watershed uses distance-transform peaks at least `watershed_min_distance` apart as markers.
 
