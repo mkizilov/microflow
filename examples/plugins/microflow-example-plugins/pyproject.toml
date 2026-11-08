@@ -1,11 +1,14 @@
 [build-system]
-requires = ["hatchling>=1.24"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
 name = "microflow-example-plugins"
 version = "1.0.0"
 description = "Example MicroFlow plugins, one per plugin kind. For documentation and contract tests."
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Mykyta Kizilov" }]
 requires-python = ">=3.12"
 dependencies = ["microflow", "numpy>=1.26", "pydantic>=2.6", "scipy>=1.12"]
 
