@@ -12,6 +12,7 @@ image-analysis workflow:
 | `microflow.preprocessing` | Flat-field correction, background, Gaussian and median filters, artifact masking, percentile normalisation; steps in YAML | implemented |
 | `microflow.reporting.preview` | Before/after PNG previews (display-only stretch) | implemented |
 | `microflow.segmentation` | Otsu, fixed and adaptive thresholds; opening, closing; labelling; distance-transform watershed; small-object and border removal; Dice/IoU | implemented |
+| `microflow.quantification` | Per-object geometry and raw/corrected intensity statistics, with physical units when calibrated; CSV table | implemented |
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |
 | `microflow.sample_data` | Deterministic synthetic images for demos and tests | implemented |
 | `microflow.cli` | Typer entry point (`microflow`) | implemented |
@@ -96,6 +97,14 @@ and Dice and IoU when a reference is given. See `examples/segment.yaml`.
 - NaN pixels are background and do not affect thresholds.
 - Dice = 2|A∩B|/(|A|+|B|); IoU = |A∩B|/|A∪B|, on foreground pixels. Two empty masks score 1.0.
 - The watershed uses distance-transform peaks at least `watershed_min_distance` apart as markers.
+
+## Quantification
+
+`microflow measure LABELS --raw RAW --output table.csv` writes one row per object. Geometry
+(area, perimeter, centroid, bounding box, eccentricity, equivalent diameter) is reported once per
+object; intensity statistics are reported per source (`raw` or `corrected`) and channel. Lengths
+are in the calibration unit when the image is calibrated, otherwise in pixels, and column names
+state which. Every definition and assumption is in `docs/measurements.md`.
 
 ## Conventions
 

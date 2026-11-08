@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Annotated
 
+import numpy as np
 import typer
 
 from pydantic import ValidationError
@@ -17,11 +18,13 @@ from microflow.config import (
 )
 from microflow.dataset import inspect_dataset
 from microflow.image_io import write_image
-from microflow.loading import ImageLoadError, load_image
+from microflow.loading import ImageLoadError, LoadedImage, load_image
 from microflow.preprocessing import PreprocessingError, preprocess
 from microflow.preprocessing.steps import load_steps
 from microflow.reporting.preview import first_plane, write_before_after_png
 from microflow.sample_data import write_sample_dataset
+from microflow.quantification import IntensitySource, MeasurementError, measure_plane
+from microflow.quantification.records import Source
 from microflow.segmentation import score_segmentation, segment_image
 from microflow.units import Calibration
 
@@ -170,6 +173,106 @@ def segment_command(
     if scores is not None:
         typer.echo(f"Dice {scores.dice:.4f}  IoU {scores.iou:.4f}")
     typer.echo(f"wrote {sidecar}")
+
+
+@app.command("measure")
+def measure_command(
+    labels_path: Annotated[
+        Path, typer.Argument(help="Label image from `microflow segment`, one Y-X plane.")
+    ],
+    raw: Annotated[
+        Path, typer.Option(help="Raw intensity image: axes YX, or one channel axis C.")
+    ],
+    output: Annotated[Path, typer.Option(help="Output CSV with one row per object.")],
+    corrected: Annotated[
+        Path | None,
+        typer.Option(
+            help="Corrected image on the same grid, e.g. from `microflow preprocess` "
+            "without normalize."
+        ),
+    ] = None,
+    pixel_size: Annotated[
+        float | None,
+        typer.Option(help="Pixel size; overrides the file's calibration. Needs --unit."),
+    ] = None,
+    unit: Annotated[
+        str | None, typer.Option(help="Length unit for --pixel-size: nm, um, mm or m.")
+    ] = None,
+    require_calibration: Annotated[
+        bool,
+        typer.Option(
+            "--require-calibration",
+            help="Fail rather than report pixel units when the image has no calibration.",
+        ),
+    ] = False,
+) -> None:
+    """Measure geometry and intensity of every labelled object and write a CSV table.
+
+    Geometry appears once per object. Intensity columns are prefixed by source (raw or
+    corrected) and channel. docs/measurements.md defines every column.
+    """
+    warning: str | None = None
+    try:
+        raw_image = load_image(raw, calibration=_calibration_option(pixel_size, unit))
+        labels = load_image(labels_path)
+        if labels.axes != "YX":
+            raise MeasurementError(f"{labels_path}: labels have axes {labels.axes!r}; expected YX")
+        if require_calibration and raw_image.calibration is None:
+            raise MeasurementError(f"{raw}: no pixel calibration; give --pixel-size and --unit")
+        raw_source = _intensity_source("raw", raw_image)
+        sources = [raw_source]
+        if corrected is not None:
+            corrected_image = load_image(corrected)
+            if corrected_image.axes != raw_image.axes or corrected_image.shape != raw_image.shape:
+                raise MeasurementError(
+                    f"{corrected}: axes {corrected_image.axes!r} and shape {corrected_image.shape} "
+                    f"do not match the raw image ({raw_image.axes!r}, {raw_image.shape})"
+                )
+            warning = _check_corrected_provenance(corrected)
+            sources.append(_intensity_source("corrected", corrected_image, raw_source.channels))
+        table = measure_plane(labels.data, sources, raw_image.calibration)
+    except (ImageLoadError, ConfigError, ValueError, OSError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    if warning is not None:
+        typer.echo(warning, err=True)
+    table.write_csv(output)
+    typer.echo(f"wrote {output} ({len(table.objects)} objects, length unit: {table.length_unit})")
+
+
+def _intensity_source(
+    name: Source, image: LoadedImage, channels: tuple[str, ...] | None = None
+) -> IntensitySource:
+    if not set(image.axes) <= {"C", "Y", "X"}:
+        raise MeasurementError(
+            f"{name} image has axes {image.axes!r}; measurement supports YX or one channel axis C"
+        )
+    order = [image.axes.index("Y"), image.axes.index("X")]
+    if "C" in image.axes:
+        order.insert(0, image.axes.index("C"))
+    planes = np.transpose(np.asarray(image.data, dtype=np.float64), order)
+    if "C" not in image.axes:
+        planes = planes[np.newaxis]
+    names = channels or image.channels or tuple(f"c{index}" for index in range(planes.shape[0]))
+    return IntensitySource(name=name, planes=planes, channels=names)
+
+
+def _check_corrected_provenance(path: Path) -> str | None:
+    """Refuse normalised images, which would distort intensities. Warn if unverifiable."""
+    sidecar = path.with_suffix(".provenance.json")
+    if not sidecar.exists():
+        return (
+            f"warning: {path.name} has no provenance sidecar, "
+            "so it cannot be verified as un-normalised"
+        )
+    stages = json.loads(sidecar.read_text(encoding="utf-8")).get("stages", [])
+    if any(stage.get("stage") == "normalize" for stage in stages):
+        raise MeasurementError(
+            f"{path.name} was normalised ({sidecar.name} lists a normalize stage). "
+            "Normalisation rescales intensities, so measure before normalising."
+        )
+    return None
 
 
 @app.command("make-sample-data")
