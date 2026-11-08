@@ -32,12 +32,15 @@ dev = [
     "mypy>=1.11",
     "pytest>=8.3",
     "ruff>=0.6",
+    "httpx>=0.27",
     "types-pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
 # Optional: segmentation training with PyTorch. Core features do not need it.
 ml = ["torch>=2.4"]
+# Optional: the HTTP analysis service (microflow serve). The CLI works without it.
+service = ["fastapi>=0.115", "uvicorn>=0.30"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/microflow"]
@@ -61,6 +64,7 @@ addopts = "-ra --strict-markers"
 markers = [
     "ml: needs the optional PyTorch extra (uv sync --extra ml)",
     "gpu: needs a CUDA device",
+    "service: needs the optional service extra (uv sync --extra service)",
 ]
 
 [tool.ruff]
@@ -81,6 +85,16 @@ files = ["src", "tests"]
 [[tool.mypy.overrides]]
 module = ["torch", "torch.*"]
 ignore_missing_imports = true
+
+# The HTTP service's optional extra. Route decorators come from FastAPI, which is untyped when absent.
+[[tool.mypy.overrides]]
+module = ["fastapi", "fastapi.*", "starlette", "starlette.*", "uvicorn", "uvicorn.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["microflow.service.app", "microflow.service.server"]
+disallow_untyped_decorators = false
+warn_return_any = false
 
 [[tool.mypy.overrides]]
 module = [

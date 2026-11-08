@@ -50,6 +50,7 @@ from microflow.sample_data import write_sample_dataset
 from microflow.quantification import IntensitySource, MeasurementError, measure_plane
 from microflow.quantification.records import Source
 from microflow.segmentation import score_segmentation, segment_image
+from microflow.service.settings import check_bind, load_settings, token_from_environment
 from microflow.units import Calibration
 
 app = typer.Typer(
@@ -414,6 +415,62 @@ def batch_command(
 
 def _print_progress(event: ProgressEvent) -> None:
     typer.echo(f"[{event.completed}/{event.total}] {event.name}: {event.status} ({event.detail})")
+
+
+@app.command("serve")
+def serve_command(
+    settings_path: Annotated[Path, typer.Argument(help="Service settings YAML.")],
+    host: Annotated[
+        str | None, typer.Option(help="Address to listen on; overrides the settings.")
+    ] = None,
+    port: Annotated[
+        int | None, typer.Option(min=1, max=65535, help="Port; overrides the settings.")
+    ] = None,
+    allow_remote: Annotated[
+        bool,
+        typer.Option(
+            "--allow-remote",
+            help="Accept a non-loopback address. Put a TLS-terminating proxy in front.",
+        ),
+    ] = False,
+) -> None:
+    """Run the analysis HTTP service. Needs the 'service' extra and MICROFLOW_SERVICE_TOKEN.
+
+    The token is read from the environment and never printed. Only loopback addresses are accepted
+    unless --allow-remote is given. Without the extra, this command reports how to install it.
+    """
+    try:
+        settings = load_settings(settings_path)
+        updates: dict[str, object] = {}
+        if host is not None:
+            updates["host"] = host
+        if port is not None:
+            updates["port"] = port
+        if allow_remote:
+            updates["allow_remote"] = True
+        settings = settings.model_copy(update=updates)
+        check_bind(settings.host, settings.allow_remote)
+        token = token_from_environment()
+    except ConfigError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    try:
+        import fastapi  # noqa: F401
+        import uvicorn  # noqa: F401
+    except ImportError as exc:
+        typer.echo(
+            "error: the service needs the 'service' extra; "
+            "install it with: uv sync --extra service",
+            err=True,
+        )
+        raise typer.Exit(code=1) from exc
+    from microflow.service.server import serve
+
+    try:
+        serve(settings, token=token)
+    except ConfigError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
 
 
 @app.command("export")

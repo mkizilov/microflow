@@ -40,3 +40,16 @@ jobs:
       - run: uv run microflow ml splits examples/ml/synthetic.yaml
       - run: uv run microflow ml train examples/ml/synthetic.yaml --device cpu
       - run: uv run microflow ml evaluate examples/ml/synthetic.yaml data/ml-runs/synthetic-unet/best.pt
+
+  service:
+    # The HTTP service needs the optional extra. The rest of the suite runs without it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.22"
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --locked --extra service
+      - run: uv run pytest -m service

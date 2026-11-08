@@ -21,4 +21,7 @@ data/synthetic-ml/
 data/ml-runs/
 data/stats-example/
 stats-results/
+data/service-input/
+data/service-output/
+data/service-state/
 ml-results/

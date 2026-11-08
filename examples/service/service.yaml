@@ -1,0 +1,18 @@
+# Analysis service settings. Paths resolve relative to this file.
+#
+# Create the input and output directories before starting the service. Clients submit absolute
+# paths; the service reads only inside input_roots and writes only inside output_roots.
+#
+# The access token is NOT in this file. Set it in the environment, for example:
+#   export MICROFLOW_SERVICE_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+#   uv run microflow serve examples/service/service.yaml
+state_directory: ../../data/service-state
+input_roots:
+  - ../../data/service-input
+output_roots:
+  - ../../data/service-output
+max_concurrent_jobs: 1
+max_queued_jobs: 8
+host: 127.0.0.1
+port: 21300
+allow_remote: false

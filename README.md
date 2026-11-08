@@ -133,6 +133,21 @@ uv run microflow stats run examples/stats/design.yaml
 See `docs/statistics.md` for the design format, the assumptions behind each estimate, the corrections,
 and the outputs.
 
+## HTTP analysis service (optional)
+
+`microflow serve` runs an HTTP service for submitting batch analyses, tracking them, and downloading
+results and quality-control reports. It needs the `service` extra and a token in the environment. It
+listens on loopback only, reads and writes only inside configured directories, and runs no plugins.
+The CLI works without it.
+
+```sh
+uv sync --extra service
+export MICROFLOW_SERVICE_TOKEN="<at least 32 characters>"
+uv run microflow serve examples/service/service.yaml
+```
+
+See `docs/service.md` for the endpoints, the security model, job states and the limits.
+
 ## Development checks
 
 ```sh
