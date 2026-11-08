@@ -23,3 +23,20 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest
       - run: uv run microflow make-sample-data --out-dir "$RUNNER_TEMP/synthetic"
+
+  ml:
+    # CPU-only PyTorch. The ML tests run here; the GPU test is skipped without CUDA.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.22"
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --locked --extra ml
+      - run: uv run pytest -m ml
+      - run: uv run microflow ml make-dataset data/synthetic-ml --samples 6 --size 64 --seed 0
+      - run: uv run microflow ml splits examples/ml/synthetic.yaml
+      - run: uv run microflow ml train examples/ml/synthetic.yaml --device cpu
+      - run: uv run microflow ml evaluate examples/ml/synthetic.yaml data/ml-runs/synthetic-unet/best.pt

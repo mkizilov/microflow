@@ -9,6 +9,9 @@ import numpy as np
 import pytest
 import tifffile
 
+from microflow.ml.config import TrainingConfig
+from microflow.ml.synthetic import make_synthetic_dataset
+
 
 @pytest.fixture
 def write_tiff(tmp_path: Path) -> Callable[..., Path]:
@@ -57,6 +60,37 @@ def plugin_site(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Cal
     for name, module in list(sys.modules.items()):
         if str(getattr(module, "__file__", "") or "").startswith(str(site)):
             del sys.modules[name]
+
+
+@pytest.fixture
+def ml_manifest(tmp_path: Path) -> Path:
+    """Six donors with two 48 x 48 fields each: enough for three splits, small enough for CPU."""
+    return make_synthetic_dataset(
+        tmp_path / "synthetic", samples=6, images_per_sample=2, size=48, seed=0
+    )
+
+
+@pytest.fixture
+def ml_config(tmp_path: Path) -> Callable[..., TrainingConfig]:
+    """Build a small training configuration for a manifest. Keyword arguments replace sections."""
+
+    def build(manifest: Path, **overrides: Any) -> TrainingConfig:
+        values: dict[str, Any] = {
+            "name": "test-run",
+            "manifest": manifest,
+            "output_directory": tmp_path / "runs" / "out",
+            "seed": 0,
+            "split": {"validation": 0.2, "test": 0.2},
+            "model": {"base_channels": 4, "depth": 2},
+            "patches": {"size": 32, "per_image": 2},
+            "training": {"epochs": 2, "batch_size": 4},
+            "device": "cpu",
+            "num_workers": 0,
+        }
+        values.update(overrides)
+        return TrainingConfig.model_validate(values)
+
+    return build
 
 
 @pytest.fixture

@@ -95,6 +95,18 @@ uv run microflow plugins list
 uv run microflow plugins check examples/batch.yaml
 ```
 
+## Segmentation training (optional PyTorch)
+
+A small U-Net can be trained on image and mask pairs. Splitting is by original sample, so no patch
+from a held-out sample reaches training. Install the extra with `uv sync --extra ml`, then:
+
+```sh
+uv run microflow ml make-dataset data/synthetic-ml
+uv run microflow ml train examples/ml/synthetic.yaml
+```
+
+See `docs/machine-learning.md` for the data format, configuration, leakage rules and limits.
+
 ## Development checks
 
 ```sh

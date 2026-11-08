@@ -1,0 +1,30 @@
+# Small CPU-friendly U-Net run on the synthetic dataset. Generate the data first:
+#   uv run microflow ml make-dataset data/synthetic-ml
+# Paths resolve relative to this file.
+name: synthetic-unet
+manifest: ../../data/synthetic-ml/manifest.yaml
+output_directory: ../../data/ml-runs/synthetic-unet
+seed: 0
+split:
+  validation: 0.2
+  test: 0.2
+model:
+  base_channels: 8
+  depth: 2
+patches:
+  size: 32
+  per_image: 4
+augment:
+  flip: true
+  rotate90: true
+  intensity: 0.1
+  noise_std: 0.0
+training:
+  epochs: 3
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0
+  bce_weight: 0.5
+  threshold: 0.5
+device: cpu
+num_workers: 0

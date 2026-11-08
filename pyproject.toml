@@ -31,15 +31,33 @@ dev = [
     "types-pyyaml>=6.0",
 ]
 
+[project.optional-dependencies]
+# Optional: segmentation training with PyTorch. Core features do not need it.
+ml = ["torch>=2.4"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/microflow"]
 
 [tool.uv]
 default-groups = ["dev"]
 
+# PyTorch's CPU-only wheels on Linux keep CI small. macOS and Windows use the default index.
+# To use CUDA wheels on Linux, remove the torch entry below and re-lock.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+markers = [
+    "ml: needs the optional PyTorch extra (uv sync --extra ml)",
+    "gpu: needs a CUDA device",
+]
 
 [tool.ruff]
 line-length = 100
@@ -53,3 +71,23 @@ select = ["E", "W", "F", "I", "B", "UP", "NPY", "RUF"]
 python_version = "3.12"
 strict = true
 files = ["src", "tests"]
+
+# PyTorch is optional. Without it, torch is untyped, so mypy cannot check the torch-facing modules
+# strictly; those modules relax two checks that depend on torch's types.
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "microflow.ml.unet",
+    "microflow.ml.losses",
+    "microflow.ml.torch_data",
+    "microflow.ml.checkpoint",
+    "microflow.ml.inference",
+    "microflow.ml.train",
+    "microflow.ml.evaluate",
+    "test_ml_torch",
+]
+disallow_subclassing_any = false
+warn_return_any = false

@@ -17,3 +17,6 @@ results/
 batch-results/
 # Tool-managed session state (not project source)
 .cortexkit/
+data/synthetic-ml/
+data/ml-runs/
+ml-results/
