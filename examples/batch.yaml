@@ -1,0 +1,37 @@
+# Batch configuration for `microflow batch`. Paths resolve against this file's directory.
+#
+#   uv run microflow make-sample-data --out-dir data/synthetic
+#   uv run microflow batch examples/batch.yaml --workers 2
+#
+# Running the same command again resumes: images whose inputs, settings and outputs are unchanged
+# are reused, and the rest are reprocessed.
+name: synthetic-batch
+
+dataset:
+  images:
+    - name: synthetic_00
+      path: ../data/synthetic/synthetic_00.tif
+      calibration: {pixel_size: 0.5, unit: um}
+    - name: synthetic_01
+      path: ../data/synthetic/synthetic_01.tif
+      calibration: {pixel_size: 0.5, unit: um}
+    - name: synthetic_02
+      path: ../data/synthetic/synthetic_02.tif
+      calibration: {pixel_size: 0.5, unit: um}
+
+preprocessing:
+  - kind: gaussian
+    sigma: {value: 1, unit: um}
+
+segmentation:
+  method: otsu
+  min_object_area: {value: 4, unit: um}
+
+segmentation_channel: null   # channel name to segment; null uses the first channel
+
+quality_control:
+  max_foreground_fraction: 0.6
+
+output_directory: ../results/synthetic-batch
+workers: 2                   # images processed in parallel (1 to 8)
+memory_budget_mb: 512        # estimated working-set limit across images running at once

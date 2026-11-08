@@ -14,6 +14,7 @@ image-analysis workflow:
 | `microflow.segmentation` | Otsu, fixed and adaptive thresholds; opening, closing; labelling; distance-transform watershed; small-object and border removal; Dice/IoU | implemented |
 | `microflow.quantification` | Per-object geometry and raw/corrected intensity statistics, with physical units when calibrated; CSV table | implemented |
 | `microflow.reporting` | Quality control (flags, summary), headless matplotlib figures, self-contained HTML; separate from analysis | implemented |
+| `microflow.batch` | Batch engine: bounded parallel processing, validated resume, cancellation, memory budget, and atomic publishing | implemented |
 | `microflow.dataset` | Typed per-image metadata checked against the manifest | implemented |
 | `microflow.sample_data` | Deterministic synthetic images for demos and tests | implemented |
 | `microflow.cli` | Typer entry point (`microflow`) | implemented |
@@ -117,6 +118,15 @@ See `docs/quality-control.md`.
 
 Reporting depends on the numerical packages, never the reverse. Only `microflow.reporting` imports
 matplotlib.
+
+## Batch processing
+
+`microflow batch CONFIG` runs preprocessing, segmentation, measurement and QC for every image in a
+dataset. Images run in a bounded process pool (or in-process with one worker), and a memory budget
+limits how many run at once. Outputs are published atomically; a run's `batch_manifest.json` is
+written only when the run finishes, so a finished manifest is the only sign of success. Re-running
+the command resumes from results whose inputs, settings and outputs still match. See
+`docs/batch.md`.
 
 ## Conventions
 

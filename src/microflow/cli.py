@@ -18,6 +18,9 @@ from microflow.config import (
     load_quality_config,
     load_segmentation_config,
 )
+from microflow.batch import BatchError, load_batch_config, run_batch
+from microflow.batch.records import ProgressEvent
+from microflow.batch.store import MANIFEST_FILE
 from microflow.dataset import inspect_dataset
 from microflow.image_io import write_image
 from microflow.loading import ImageLoadError, LoadedImage, load_image
@@ -343,6 +346,49 @@ def qc_report_command(
     )
     if fail_on_flags and report.flags:
         raise typer.Exit(code=2)
+
+
+@app.command("batch")
+def batch_command(
+    config_path: Annotated[Path, typer.Argument(help="Batch YAML configuration.")],
+    workers: Annotated[
+        int | None,
+        typer.Option(min=1, help="Images processed in parallel; overrides the configuration."),
+    ] = None,
+) -> None:
+    """Process every image in a batch, with resume.
+
+    Exit status: 0 complete, 3 finished with failed images, 130 cancelled, 1 configuration or
+    output-directory error. Running the same command again resumes from valid results.
+    """
+    try:
+        config = load_batch_config(config_path)
+    except ConfigError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo(
+        f"batch '{config.name}': {len(config.dataset.images)} image(s), "
+        f"output {config.output_directory}"
+    )
+    try:
+        manifest = run_batch(config, progress=_print_progress, workers=workers)
+    except (BatchError, OSError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    counts = manifest.counts
+    typer.echo(
+        f"status: {manifest.status} (ok {counts['ok']}, failed {counts['failed']}, "
+        f"cancelled {counts['cancelled']}, resumed {counts['resumed']})"
+    )
+    typer.echo(f"manifest: {config.output_directory / MANIFEST_FILE}")
+    exit_codes = {"complete": 0, "completed_with_failures": 3, "cancelled": 130}
+    if exit_codes[manifest.status]:
+        raise typer.Exit(code=exit_codes[manifest.status])
+
+
+def _print_progress(event: ProgressEvent) -> None:
+    typer.echo(f"[{event.completed}/{event.total}] {event.name}: {event.status} ({event.detail})")
 
 
 @app.command("make-sample-data")
