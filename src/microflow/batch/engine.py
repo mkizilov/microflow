@@ -10,7 +10,7 @@ free.
 
 Cancellation. A cancel request (the callable, or a ``cancel.requested`` file in the run directory)
 stops new work. Images already running finish, and the rest are recorded as cancelled. Ctrl-C
-has the same effect. Results are published when the run ends.
+has the same effect. Each image is published when it finishes; the manifest only at the end.
 
 Publishing. The run directory is marked "running" while work proceeds. If the run raises, it is
 marked "aborted". Only a finished run gets a manifest, so the manifest's presence marks success

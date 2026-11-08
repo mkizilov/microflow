@@ -96,9 +96,9 @@ earlier attempt can pass as current.
 
 ## Parallelism, memory and cancellation
 
-- **Backend.** Images run in a bounded `concurrent.futures.ProcessPoolExecutor`. Each image runs in
-  its own process, so a crash cannot corrupt another image's work. With one worker, images run in
-  the calling process. Dask was considered and not added: it is a large dependency that cannot be
+- **Backend.** Images run in a bounded `concurrent.futures.ProcessPoolExecutor`. The worker
+  processes are separate from the calling process, so a worker crash affects only the images that
+  worker was running. With one worker, images run in the calling process. Dask was considered and not added: it is a large dependency that cannot be
   locked in this environment, and a single machine's batch does not need it. A later move to a
   cluster would be a separate task.
 - **Bounded work.** At most `workers` images run at once. A worker count above 8 is rejected.
@@ -110,8 +110,10 @@ earlier attempt can pass as current.
 - **Cancellation.** Cancellation can come from Ctrl-C, from a `cancel.requested` file, or from a
   cancel callable passed to `run_batch`. It stops new work. Images already running finish. The
   rest are recorded as cancelled, and the manifest status is `cancelled`. The completed images
-  remain valid, so the next run resumes from them. A second Ctrl-C during the wait is not handled
-  specially; killing the process is safe, because nothing is published until the run ends.
+  remain valid, so the next run resumes from them. Further Ctrl-C presses while running images finish
+  are ignored. To stop at once, terminate the process (for example with `kill`). That is safe: each
+  image's result is published only once it is complete, the manifest is never written for an
+  interrupted run, and the next run clears the stale lock and partial files and resumes.
 - **Progress.** The CLI prints one line per image as it finishes:
   `[3/10] name: ok (objects 4, 1 flag(s), 2.10s)`, or `(cached)` for reused results, or
   `error: ...` for a failure.
@@ -123,10 +125,12 @@ earlier attempt can pass as current.
   with "worker process terminated unexpectedly". The pool is replaced and the remaining images
   continue. Which images were running at the time cannot always be determined, so each one in
   flight is recorded as failed and is retried on the next run.
-- Process-based parallelism relies on the `spawn` start method on macOS and Windows. The code
-  is written so that the worker function is importable, but the parallel path has only been
-  exercised on this machine's tests, and only where the environment allowed (see the project
-  notes).
+- Process-based parallelism relies on the `spawn` start method on macOS and Windows. The worker
+  function is importable at module level, but the parallel path has not been run in the
+  environment where this was written. The parallel tests are the first to run once dependencies
+  are installed.
+- One run takes one batch configuration. A "dataset" here is the set of images listed in that
+  configuration, and different settings need separate runs with separate output directories.
 - The memory estimate is a heuristic. Very large images can exceed it.
 - Corrected intensities are not measured when a normalize step is present, because normalization
   would change intensities.

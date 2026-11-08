@@ -58,6 +58,18 @@ masks, excessive coverage, saturation, and objects outside the configured area r
 `--fail-on-flags` in CI to exit with status 2 when anything is flagged. See
 `docs/quality-control.md`.
 
+## Batch processing
+
+```sh
+uv run microflow batch examples/batch.yaml --workers 2
+```
+
+Every image in the configuration is preprocessed, segmented, measured and reported. Images run
+in a bounded process pool, and a memory budget can limit how many run at once. Running the same
+command again resumes: only images whose inputs, settings and outputs have changed are
+reprocessed. The run's `batch_manifest.json` appears only when the run finishes, and its status
+says whether it completed, had failures, or was cancelled. See `docs/batch.md`.
+
 ## Development checks
 
 ```sh
