@@ -180,7 +180,6 @@ uv run ruff format --check .
 uv run mypy
 uv run pytest
 python3 scripts/generate_reference.py --check
-uv run python scripts/generate_license_inventory.py --check
 ```
 
 The CI workflow in `.github/workflows/ci.yml` runs these on Python 3.12 and 3.13, with the optional
@@ -196,9 +195,7 @@ project.
 ## License
 
 MicroFlow is released under the MIT License. See [LICENSE](LICENSE). Copyright (c) 2026 Mykyta Kizilov.
-The example plugin package in `examples/plugins/` carries the same license. Third-party packages keep
-their own licenses. [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) lists the locked packages with
-their licenses, the copyleft review, and the notes for redistributing a container image.
+The example plugin package in `examples/plugins/` carries the same license.
 
 ## Documentation
 
@@ -213,7 +210,6 @@ their licenses, the copyleft review, and the notes for redistributing a containe
 - [Audit](docs/audit.md): what was checked for numerical accuracy, units, axes, statistics,
   segmentation and model evaluation, and what remains open.
 - [Benchmarks](docs/benchmarks.md) and [Docker](docs/docker.md).
-- [Third-party licenses](THIRD_PARTY_LICENSES.md), generated from the locked environment.
 
 ## Demonstration
 
@@ -236,8 +232,7 @@ src/microflow/   package: core processing, batch, ml, stats, service, provenance
 tests/           pytest suite (deterministic, uses tmp_path only)
 examples/        example configurations, the demonstration, and the optional service's settings
 benchmarks/      pipeline timing script and one committed smoke-run result (benchmarks/results/)
-scripts/         generate_reference.py (writes docs/reference) and generate_license_inventory.py
-                 (writes THIRD_PARTY_LICENSES.md)
+scripts/         reference generation and verification tools
 docs/            user, reference, statistics, service and audit documentation
 .github/         CI workflow
 Dockerfile       container image for the optional service
