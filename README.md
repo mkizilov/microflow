@@ -183,7 +183,10 @@ python3 scripts/generate_reference.py --check
 ```
 
 The CI workflow in `.github/workflows/ci.yml` runs these on Python 3.12 and 3.13, with the optional
-extras, the demonstration and the reference check. It has not run on GitHub yet.
+extras, the demonstration and the reference check. Every command in the `test`, `ml` and `service` jobs
+pins the interpreter and, where a job needs one, the optional extra. A bare `uv run` would rebuild the
+environment and drop what the sync installed. The hosted run that exposed this failed in those three
+jobs. Their commands have been reproduced locally on both Python versions.
 
 ## Dependency locking
 

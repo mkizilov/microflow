@@ -33,6 +33,14 @@ out of date with `pyproject.toml`, uv reports it and stops. Do not drop `--locke
 
 Install several at once with `uv sync --locked --extra ml --extra service`.
 
+Run commands that need an extra with the same extra on the command line. A bare `uv run` after a sync
+with `--extra` re-syncs the project without it, which removes the extra and can change the interpreter:
+
+```sh
+uv run --locked --extra ml pytest -m ml
+uv run --locked --extra service pytest -m service
+```
+
 ## Verify the install
 
 ```sh

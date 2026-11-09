@@ -22,12 +22,14 @@ jobs:
           version: "0.8.22"
           enable-cache: true
       - run: uv python install ${{ matrix.python-version }}
+      # Every command pins the interpreter. A bare `uv run` would re-select the default Python and
+      # rebuild the environment, which drops anything the sync installed.
       - run: uv sync --locked --python ${{ matrix.python-version }}
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy
-      - run: uv run pytest
-      - run: uv run microflow make-sample-data --out-dir "$RUNNER_TEMP/synthetic"
+      - run: uv run --locked --python ${{ matrix.python-version }} ruff check .
+      - run: uv run --locked --python ${{ matrix.python-version }} ruff format --check .
+      - run: uv run --locked --python ${{ matrix.python-version }} mypy
+      - run: uv run --locked --python ${{ matrix.python-version }} pytest
+      - run: uv run --locked --python ${{ matrix.python-version }} microflow make-sample-data --out-dir "$RUNNER_TEMP/synthetic"
 
   reference:
     # Fails if the committed CLI and HTTP reference differs from the code, and runs the tests that need
@@ -59,11 +61,13 @@ jobs:
           enable-cache: true
       - run: uv python install ${{ matrix.python-version }}
       - run: uv sync --locked --extra ml --python ${{ matrix.python-version }}
-      - run: uv run pytest -m ml
-      - run: uv run microflow ml make-dataset data/synthetic-ml --samples 6 --size 64 --seed 0
-      - run: uv run microflow ml splits examples/ml/synthetic.yaml
-      - run: uv run microflow ml train examples/ml/synthetic.yaml --device cpu
-      - run: uv run microflow ml evaluate examples/ml/synthetic.yaml data/ml-runs/synthetic-unet/best.pt
+      # Each command repeats --extra ml, so torch stays installed and the ML tests cannot skip silently.
+      - run: uv run --locked --extra ml --python ${{ matrix.python-version }} python -c "import torch; print('torch', torch.__version__)"
+      - run: uv run --locked --extra ml --python ${{ matrix.python-version }} pytest -m ml -rs
+      - run: uv run --locked --extra ml --python ${{ matrix.python-version }} microflow ml make-dataset data/synthetic-ml --samples 6 --size 64 --seed 0
+      - run: uv run --locked --extra ml --python ${{ matrix.python-version }} microflow ml splits examples/ml/synthetic.yaml
+      - run: uv run --locked --extra ml --python ${{ matrix.python-version }} microflow ml train examples/ml/synthetic.yaml --device cpu
+      - run: uv run --locked --extra ml --python ${{ matrix.python-version }} microflow ml evaluate examples/ml/synthetic.yaml data/ml-runs/synthetic-unet/best.pt
 
   service:
     # The HTTP service needs the optional extra. The rest of the suite runs without it.
@@ -80,7 +84,9 @@ jobs:
           enable-cache: true
       - run: uv python install ${{ matrix.python-version }}
       - run: uv sync --locked --extra service --python ${{ matrix.python-version }}
-      - run: uv run pytest -m service
+      # Each command repeats --extra service, so FastAPI stays installed and the service tests run.
+      - run: uv run --locked --extra service --python ${{ matrix.python-version }} python -c "import fastapi; print('fastapi', fastapi.__version__)"
+      - run: uv run --locked --extra service --python ${{ matrix.python-version }} pytest -m service -rs
 
   demo:
     # The end-to-end demonstration: synthetic images to segmentation, statistics, the HTML report and

@@ -29,7 +29,9 @@ NORMALIZATION = Normalization(mean=100.0, std=40.0)
 
 def _random_model(base_channels: int = 4, depth: int = 2, seed: int = 0) -> UNet:
     torch.manual_seed(seed)
-    return UNet(base_channels=base_channels, depth=depth).eval()
+    model = UNet(base_channels=base_channels, depth=depth)
+    model.eval()
+    return model
 
 
 def _loaded(model: UNet, **spec_changes: Any) -> LoadedModel:
